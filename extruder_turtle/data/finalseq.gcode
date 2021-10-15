@@ -6,4 +6,5 @@ M104 S0                 ; cool down hotend
 M140 S0                 ; cool down bed
 M107                    ; turn off fan
 G1 F5000 Z100           ; move extruder above print
+G28                     ; Home all axes
 M84                     ; disable motors

@@ -54,6 +54,9 @@ class ExtruderTurtle:
         if self.write_gcode:
             self.out_file.write(cmd + "\n")
 
+    def write_gcode_comment(self, comment):
+        self.out_file.write("; " + comment + "\n")
+
     def setup(self, x=0,
                     y=0,
                     z=0,
@@ -73,7 +76,6 @@ class ExtruderTurtle:
             self.initseq_file = open(self.initseq_filename, 'r')
             self.do(self.initseq_file.read().format(**locals()))
             self.initseq_file.close()
-
 
     def finish(self):
         if self.write_gcode:
@@ -150,6 +152,9 @@ class ExtruderTurtle:
         self.do(self.G1f.format(f=feedrate))
 
     def set_feedrate(self, feedrate):
+        self.do(self.G1f.format(f=feedrate))
+
+    def set_speed(self, feedrate):
         self.do(self.G1f.format(f=feedrate))
 
     def record_move(self, dx, dy, dz, de=0):
@@ -275,6 +280,8 @@ class ExtruderTurtle:
         points = (point1, point2, point3)
         surface = rs.AddSrfPt(points)
         return surface
+
+
 
     def dwell(self, ms):
         self.do(self.G4p.format(p=ms))
