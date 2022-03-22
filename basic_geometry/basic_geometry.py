@@ -1,10 +1,20 @@
 import math
 
-# parameters for potterbot w/ 3mm nozzle and red clay, WH8
-extrude_width = 3.6
-layer_height = 2.0
+# parameters for potterbot w/ 3mm nozzle and WH8
+nozzle = 3.0
+extrude_width = 3.5 #mostly for solid bottoms
+layer_height = 2.2
 extrude_rate = 3.0 #mm extruded/mm
 speed = 1000 #mm/minute
+# center: X209.083 Y140.009
+
+# # parameters for eazao w/ 1.6mm nozzle (green) and playdoh
+# nozzle = 1.6
+# extrude_width = 2.0 #mostly for solid bottoms
+# layer_height = .7
+# extrude_rate = 3.0 #mm extruded/mm
+# speed = 500 #mm/minute
+# # center: 100
 
 # parameters for potterbot w/ 3mm nozzle and white porcelain clay
 #extrude_width = 2.5
@@ -12,6 +22,7 @@ speed = 1000 #mm/minute
 #extrude_rate = 3 #mm extruded/mm
 #speed = 1000 #mm/minute
 
+#creates a polygon with the edge begining at the turtle's location
 def non_centered_poly(diameter, number_sides, t):
     r = diameter/2
     circumference = diameter * math.pi
@@ -23,7 +34,8 @@ def non_centered_poly(diameter, number_sides, t):
         t.forward(c_inc)
         t.right(outer_angle)
 
-def polygon_layer (diameter, number_sides, t):
+# creates a solid flat layer of polygons that spiral out from a center point
+def polygon_layer (diameter, number_sides, t, return_to_center = False):
     d = extrude_width*2
     t.left(90)
     t.forward(extrude_width)
@@ -39,28 +51,34 @@ def polygon_layer (diameter, number_sides, t):
     t.forward((diameter-d)/2)
     t.right(90)
     non_centered_poly(diameter,number_sides,t)
+    if (return_to_center):
+        t.left(90)
+        t.lift(5)
+        t.backward(diameter/2)
+        t.right(90)
+        t.lift(-5)
 
-
+#creates a polygon centered around the turtle's current location
 def centered_poly(diameter, number_sides, t):
     r = diameter/2
     circumference = diameter * math.pi
     c_inc = circumference/number_sides
     outer_angle = 360/number_sides
     inner_angle = 180-360/number_sides
-    t.lift(layer_height*2)
+    t.lift(layer_height*5)
     t.penup()
     t.forward(r)
     t.left(outer_angle + inner_angle/2)
-    t.lift(-layer_height*2)
+    t.lift(-layer_height*5)
     t.pendown()
     for i in range (number_sides):
         t.forward(c_inc)
         t.left(outer_angle)
     t.penup()
-    t.lift(layer_height*2)
+    t.lift(layer_height*5)
     t.right(outer_angle + inner_angle/2)
     t.backward(r)
-    t.lift(-layer_height*2)
+    t.lift(-layer_height*5)
     t.pendown()
 
 # generates a polygon with edges that are side_length long
@@ -134,6 +152,8 @@ def oscillating_circle_z(diameter, amplitude, nOscillations, t, steps=100, spira
 
 def oscillating_circle_xyz(diameter, axy, az, nOscillationsxy, nOscillationsz, t, steps=360, spiral_up = False, spiral_out=0, theta_offset=0):
     dtheta = 360.0/steps
+    theta_one_oscillation = 360/nOscillationsxy
+    # to get 180 degrees out of phase add: theta_one_oscillation/2
     b = diameter/2
     x0 = t.getX()
     y0 = t.getY()
@@ -154,8 +174,7 @@ def oscillating_circle_xyz(diameter, axy, az, nOscillationsxy, nOscillationsz, t
         if (theta_offset==0):
             r= b+axy*math.cos(nOscillationsxy*math.radians(theta))
         else:
-            #this is a hack. amount to add needs to be calculated based on nOscillations
-            r= b+axy*math.cos(nOscillationsxy*math.radians(theta+180/nOscillationsxy))
+            r= b+axy*math.cos(nOscillationsxy*math.radians(theta+theta_offset))
         x = r*math.cos(math.radians(theta))
         y = r*math.sin(math.radians(theta))
         z = z + az*math.sin(math.radians(nOscillationsz*theta))
@@ -185,5 +204,3 @@ def square_oscillating_circle(inner_diameter, outer_diameter, nOscillations, t, 
         t.left(90)
         t.forward(r_dif)
         t.right(90)
-
-

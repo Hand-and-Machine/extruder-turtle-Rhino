@@ -1,4 +1,4 @@
- ; ############### begin header ############## 
+ ; ############### begin header for Ender ############## 
 G92 E0 ; Reset Extruder 
 G28 ; Home all axes
 G90 ; Absolute coordinates for X,Y,Z   
@@ -16,15 +16,11 @@ G92 E0 ; Reset extruder position to zero
 G1 F300 E-3 
 G1 F2000
 G1 0 0 .3               ; lift nozzle above bed a little
-; ###############  end header  ############## 
 
-<<<<<<< Updated upstream
-G1 X{x} Y{y} Z{z}       ; go to the starting positionG1 
+G1 X100 Y100 Z.1       ; go to the starting position 
 F300 E3                 ; Extrude to get ready
-=======
-G1 X{x} Y{y} Z{z}       ; go to the starting position
-G1 F300 E3              ; Extrude to get ready
->>>>>>> Stashed changes
-G1 F{feedrate}			; set the feedrate
+
+G1 F{feedrate}			; set the speed/feedrate
 M83 					; Relative extrustion
 G91                     ; relative coordinates for X,Y,Z axes
+; ###############  end header  ##############  

@@ -1,13 +1,12 @@
 import os
 import math
-import rhinoscriptsyntax as rs
 __location__ = os.path.dirname(__file__)
 
 class ExtruderTurtle:
 
     def __init__(self):
         self.out_filename = "turtle.gcode"
-        self.initseq_filename = os.path.join(__location__, "data/initseq3DPotter.gcode")
+        self.initseq_filename = os.path.join(__location__, "data/initseqEnder.gcode")
         self.finalseq_filename = os.path.join(__location__, "data/finalseq.gcode")
         self.out_file = False;
         self.initseq_file = False;
@@ -19,15 +18,15 @@ class ExtruderTurtle:
         self.forward_vec = [1, 0, 0]
         self.left_vec = [0, 1, 0]
         self.up_vec = [0, 0, 1]
-        self.use_degrees = False
-    
-        self.feedrate = 0
-        self.density = 0.05
+        self.use_degrees = True
         self.pen = True
 
-        self.write_gcode = True
+        self.feedrate = 0
+        self.density = 0.05
+
+        self.write_gcode = False
         self.track_history = True
-        self.prev_points = []
+        self.prev_points = [(self.x,self.y,self.z)]
         self.line_segs = []
         self.extrusion_history = []
 
@@ -65,12 +64,16 @@ class ExtruderTurtle:
                     bed_temp=60,
                     filename=False
                     ):
-        if self.track_history: self.prev_points = [(x,y,z)]
+        
         if (filename):
             self.out_filename = filename
-        self.x = x
-        self.y = y
-        self.z = z
+            self.write_gcode = True
+            self.initseq_filename = os.path.join(__location__, "data/initseqEnder.gcode")
+            self.finalseq_filename = os.path.join(__location__, "data/finalseq.gcode")
+            self.out_file = True;
+            self.initseq_file = True;
+            self.finalseq_file = True;
+        if self.track_history: self.prev_points = [(x,y,z)]
         if self.write_gcode:
             self.out_file = open(self.out_filename, 'w+')
             self.initseq_file = open(self.initseq_filename, 'r')
@@ -184,7 +187,7 @@ class ExtruderTurtle:
             self.do(self.G1xyz.format(x=dx, y=dy, z=dz))
 
     def forward_lift(self, distance, height):
-        extrusion = math.sqrt(distance**2+height**2) * self.density
+        extrusion = round(math.sqrt(distance**2+height**2) * self.density,3)
         dx = distance * self.forward_vec[0] + height * self.up_vec[0]
         dy = distance * self.forward_vec[1] + height * self.up_vec[1]
         dz = distance * self.forward_vec[2] + height * self.up_vec[2]
@@ -262,27 +265,6 @@ class ExtruderTurtle:
         if self.use_degrees: return math.degrees(net_roll)
         return self.net_roll
 
-    def draw_turtle(self):
-        new_forward = [math.cos(math.radians(90))*self.forward_vec[i] + math.sin(math.radians(90))*self.left_vec[i] for i in range(3)]
-        dx = 2 * new_forward[0]
-        dy = 2 * new_forward[1]
-        dz = 2 * new_forward[2]
-        point1 = rs.AddPoint(self.getX()+dx, self.getY()+dy, self.getZ()+dz)
-        new_forward = [math.cos(math.radians(-90))*self.forward_vec[i] + math.sin(math.radians(-90))*self.left_vec[i] for i in range(3)]
-        dx = 2 * new_forward[0]
-        dy = 2 * new_forward[1]
-        dz = 2 * new_forward[2]
-        point2 = rs.AddPoint(self.getX()+dx, self.getY()+dy, self.getZ()+dz)
-        dx = 5 * self.forward_vec[0]
-        dy = 5 * self.forward_vec[1]
-        dz = 5 * self.forward_vec[2]
-        point3 = rs.AddPoint(self.getX()+dx, self.getY()+dy, self.getZ()+dz)
-        points = (point1, point2, point3)
-        surface = rs.AddSrfPt(points)
-        return surface
-
-
-
     def dwell(self, ms):
         self.do(self.G4p.format(p=ms))
 
@@ -297,4 +279,5 @@ class ExtruderTurtle:
 
     def extruder_temp(self, temp):
         self.do(self.M104s.format(s=temp))
+
 

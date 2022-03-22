@@ -1,5 +1,5 @@
 
-; FINALIZATION SEQUENCE
+ ; ############### begin footer ############## 
 
 G1 E-3 					; Extrude backwards to prevent blob 
 M104 S0                 ; cool down hotend

@@ -1,7 +1,4 @@
 ; 3D POTTER INITIALIZATION SEQUENCE
-; for 3mm nozzle
-; layer height = 3mm
-; extrude rate = 5mm
 M82                             ; absolute extrusion mode
 G28                             ; Home all axes
 G92 E0                          ; Reset Extruder

@@ -1,4 +1,4 @@
-; INITIALIZATION SEQUENCE
+; INITIALIZATION SEQUENCE FOR ENDER
 G90                     ; absolute coordinates for X,Y,Z axes
 M83                     ; relative coordinates for E axis
 G21                     ; set units to mm
