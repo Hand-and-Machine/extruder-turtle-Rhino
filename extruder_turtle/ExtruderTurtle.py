@@ -1,5 +1,6 @@
 import os
 import math
+import rhinoscriptsyntax as rs
 __location__ = os.path.dirname(__file__)
 
 class ExtruderTurtle:
@@ -8,6 +9,7 @@ class ExtruderTurtle:
         self.out_filename = "turtle.gcode"
         self.initseq_filename = os.path.join(__location__, "data/initseqEnder.gcode")
         self.finalseq_filename = os.path.join(__location__, "data/finalseq.gcode")
+        self.printer = "Ender"
         self.out_file = False;
         self.initseq_file = False;
         self.finalseq_file = False;
@@ -42,6 +44,26 @@ class ExtruderTurtle:
         self.M104s = "M104 S{s}\nM109 S{s}"
         self.M140s = "M140 S{s}\nM190 S{s}"
 
+    def set_printer(self,printer="Ender"):
+        if (printer=="Ender"):
+            self.initseq_filename = os.path.join(__location__, "data/initseqEnder.gcode")
+        if (printer=="3D potter"):
+            self.initseq_filename = os.path.join(__location__, "data/initseq3DPotter.gcode")
+            self.nozzle = 3.0
+            self.extrude_width = 3.5 #mostly for solid bottoms
+            self.layer_height = 2.2
+            self.density = 3.0 #mm extruded/mm
+            self.speed = 1000 #mm/minute
+        if (printer=="Eazo"):
+            self.initseq_filename = os.path.join(__location__, "data/initseqEazao.gcode")
+            self.nozzle = 1.5
+            self.extrude_width = 1.5 
+            self.layer_height = .7
+            self.density = .5 #mm extruded/mm
+            self.speed = 10 #mm/minute
+        self.finalseq_filename = os.path.join(__location__, "data/finalseq.gcode")
+
+
     def convert_angle(self, angle):
         if self.use_degrees: return math.radians(angle)
         return angle
@@ -62,13 +84,17 @@ class ExtruderTurtle:
                     feedrate=1000,
                     hotend_temp=205,
                     bed_temp=60,
-                    filename=False
+                    filename=False,
+                    printer=False
                     ):
         
         if (filename):
             self.out_filename = filename
             self.write_gcode = True
-            self.initseq_filename = os.path.join(__location__, "data/initseqEnder.gcode")
+            if (printer):
+                set_printer(printer)
+            else:
+                self.initseq_filename = os.path.join(__location__, "data/initseqEnder.gcode")
             self.finalseq_filename = os.path.join(__location__, "data/finalseq.gcode")
             self.out_file = True;
             self.initseq_file = True;
@@ -280,4 +306,28 @@ class ExtruderTurtle:
     def extruder_temp(self, temp):
         self.do(self.M104s.format(s=temp))
 
+    def draw_turtle(self):
+        new_forward = [math.cos(math.radians(90))*self.forward_vec[i] + math.sin(math.radians(90))*self.left_vec[i] for i in range(3)]
+        dx = 2 * new_forward[0]
+        dy = 2 * new_forward[1]
+        dz = 2 * new_forward[2]
+        point1 = rs.AddPoint(self.getX()+dx, self.getY()+dy, self.getZ()+dz)
+        new_forward = [math.cos(math.radians(-90))*self.forward_vec[i] + math.sin(math.radians(-90))*self.left_vec[i] for i in range(3)]
+        dx = 2 * new_forward[0]
+        dy = 2 * new_forward[1]
+        dz = 2 * new_forward[2]
+        point2 = rs.AddPoint(self.getX()+dx, self.getY()+dy, self.getZ()+dz)
+        dx = 5 * self.forward_vec[0]
+        dy = 5 * self.forward_vec[1]
+        dz = 5 * self.forward_vec[2]
+        point3 = rs.AddPoint(self.getX()+dx, self.getY()+dy, self.getZ()+dz)
+        points = (point1, point2, point3)
+        surface = rs.AddSrfPt(points)
+        return surface
 
+    def get_lines(self):
+        lines = []
+        for l in self.line_segs:
+            if (l[0] != l[1]):
+                lines.append(rs.AddLine(l[0], l[1]))
+        return lines
