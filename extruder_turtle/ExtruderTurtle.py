@@ -47,7 +47,7 @@ class ExtruderTurtle:
     def set_printer(self,printer="Ender"):
         if (printer=="Ender"):
             self.initseq_filename = os.path.join(__location__, "data/initseqEnder.gcode")
-        if (printer=="3D potter"):
+        if (printer=="3D potter" or printer=="3Dpotter"):
             self.initseq_filename = os.path.join(__location__, "data/initseq3DPotter.gcode")
             self.nozzle = 3.0
             self.extrude_width = 3.5 #mostly for solid bottoms
@@ -217,9 +217,9 @@ class ExtruderTurtle:
         dx = distance * self.forward_vec[0] + height * self.up_vec[0]
         dy = distance * self.forward_vec[1] + height * self.up_vec[1]
         dz = distance * self.forward_vec[2] + height * self.up_vec[2]
-        dx = round(dx, 5)
-        dy = round(dy, 5)
-        dz = round(dz, 5)
+        dx = round(dx, 4)
+        dy = round(dy, 4)
+        dz = round(dz, 4)
         self.x += dx
         self.y += dy
         self.z += dz
@@ -235,15 +235,16 @@ class ExtruderTurtle:
     def lift(self, height):
         self.do(self.G1z.format(z=height))
         self.z += height
+        height = round(height,5)
         self.record_move(0, 0, height)
 
     def set_position(self, x=False, y=False, z=False):
         if x == False: x = self.x
         if y == False: y = self.y
         if z == False: z = self.z
-        dx = round(x-self.x, 5)
-        dy = round(y-self.y, 5)
-        dz = round(z-self.z, 5)
+        dx = round(x-self.x, 4)
+        dy = round(y-self.y, 4)
+        dz = round(z-self.z, 4)
         self.x = x
         self.y = y
         self.z = z
