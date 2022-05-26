@@ -1,5 +1,6 @@
 import copy
 import Rhino.Geometry as geom
+import rhinoscriptsyntax as rs
 
 def translate(g,x,y,z):
 	translation = geom.Transform.Translation(x,y,z)
