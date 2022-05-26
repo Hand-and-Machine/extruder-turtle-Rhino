@@ -6,14 +6,6 @@ __location__ = os.path.dirname(__file__)
 class ExtruderTurtle:
 
     def __init__(self):
-        self.out_filename = "turtle.gcode"
-        self.initseq_filename = os.path.join(__location__, "data/initseqEnder.gcode")
-        self.finalseq_filename = os.path.join(__location__, "data/finalseq.gcode")
-        self.printer = "Ender"
-        self.out_file = False;
-        self.initseq_file = False;
-        self.finalseq_file = False;
-        
         self.x = 0
         self.y = 0
         self.z = 0
@@ -23,15 +15,30 @@ class ExtruderTurtle:
         self.use_degrees = True
         self.pen = True
 
-        self.feedrate = 0
-        self.density = 0.05
-
+        # GCODE writing and history tracking
         self.write_gcode = False
         self.track_history = True
         self.prev_points = [(self.x,self.y,self.z)]
         self.line_segs = []
         self.extrusion_history = []
 
+        # file settings
+        self.out_filename = False
+        self.initseq_filename = False
+        self.finalseq_filename = False
+        self.printer = False
+        self.out_file = False;
+        self.initseq_file = False;
+        self.finalseq_file = False;
+
+        # printer settings
+        self.nozzle_size = 0;
+        self.extrude_width = 0;
+        self.layer_height = 0;
+        self.extrude_rate = 0;
+        self.speed = 0;
+
+        # GCODE text formats
         self.G1xyze = "G1 X{x} Y{y} Z{z} E{e}"
         self.G1xyz = "G1 X{x} Y{y} Z{z}"
         self.G1xye = "G1 X{x} Y{y} E{e}"
@@ -44,40 +51,8 @@ class ExtruderTurtle:
         self.M104s = "M104 S{s}\nM109 S{s}"
         self.M140s = "M140 S{s}\nM190 S{s}"
 
-    def set_printer(self,printer="Ender"):
-        if (printer=="Ender"):
-            self.initseq_filename = os.path.join(__location__, "data/initseqEnder.gcode")
-        if (printer=="3D potter" or printer=="3Dpotter"):
-            self.initseq_filename = os.path.join(__location__, "data/initseq3DPotter.gcode")
-            self.nozzle = 3.0
-            self.extrude_width = 3.5 #mostly for solid bottoms
-            self.layer_height = 2.2
-            self.density = 3.0 #mm extruded/mm
-            self.speed = 1000 #mm/minute
-        if (printer=="Eazo"):
-            self.initseq_filename = os.path.join(__location__, "data/initseqEazao.gcode")
-            self.nozzle = 1.5
-            self.extrude_width = 1.5 
-            self.layer_height = .7
-            self.density = .5 #mm extruded/mm
-            self.speed = 10 #mm/minute
-        self.finalseq_filename = os.path.join(__location__, "data/finalseq.gcode")
 
-
-    def convert_angle(self, angle):
-        if self.use_degrees: return math.radians(angle)
-        return angle
-
-    def name(self, filename):
-        self.out_filename = filename
-
-    def do(self, cmd):
-        if self.write_gcode:
-            self.out_file.write(cmd + "\n")
-
-    def write_gcode_comment(self, comment):
-        self.out_file.write("; " + comment + "\n")
-
+    # set up Turtle and GCODE file
     def setup(self, x=0,
                     y=0,
                     z=0,
@@ -88,23 +63,88 @@ class ExtruderTurtle:
                     printer=False
                     ):
         
-        if (filename):
+        if (printer and filename):
             self.out_filename = filename
             self.write_gcode = True
-            if (printer):
-                set_printer(printer)
-            else:
-                self.initseq_filename = os.path.join(__location__, "data/initseqEnder.gcode")
-            self.finalseq_filename = os.path.join(__location__, "data/finalseq.gcode")
             self.out_file = True;
             self.initseq_file = True;
             self.finalseq_file = True;
+            self.finalseq_filename = os.path.join(__location__, "data/finalseq.gcode")
+            self.set_printer(printer)
+            self.write_header_comments()
+        else:
+            print("Can't write file. No printer selected or filename given.")
+            
         if self.track_history: self.prev_points = [(x,y,z)]
+
+    # set printer parameters
+    def set_printer(self,printer):
+        if (printer=="Ender"):
+            self.initseq_filename = os.path.join(__location__, "data/initseqEnder.gcode") 
+            self.nozzle = .2
+            self.extrude_width = .4 
+            self.layer_height = .2
+            self.extrude_rate = .05 #mm extruded/mm
+            self.speed = 1000 #mm/minute
+            self.printer = "ender"
+        elif (printer=="3D potter" or printer=="3Dpotter" or printer=="3D Potter"  or printer=="3d potter"):
+            self.initseq_filename = os.path.join(__location__, "data/initseq3DPotter.gcode")
+            self.nozzle = 3.0
+            self.extrude_width = 3.5 #mostly for solid bottoms
+            self.layer_height = 2.2
+            self.extrude_rate = 3.0 #mm extruded/mm
+            self.speed = 1000 #mm/minute
+            self.printer = "3Dpotter"
+        elif (printer=="Eazao" or printer=="eazao"):
+            self.initseq_filename = os.path.join(__location__, "data/initseqEazao.gcode")
+            self.nozzle = 1.5
+            self.extrude_width = 1.5 
+            self.layer_height = .9
+            self.extrude_rate = 1 #mm extruded/mm
+            self.speed = 2800 #mm/minute
+            self.printer = "eazao"
+        else:
+            print ("No printer set!!")
+
+        self.finalseq_filename = os.path.join(__location__, "data/finalseq.gcode")
+
+    ###################################################################
+    # GCODE functions
+    ###################################################################
+
+    def write_header_comments(self):
         if self.write_gcode:
             self.out_file = open(self.out_filename, 'w+')
+
+            # write printer information to top of file
+            self.out_file.write("; *************************************************\n")
+            self.out_file.write("; *************************************************\n")
+            self.out_file.write("; ******* File generated by Extruder Turtle *******\n")
+            self.out_file.write("; ******* written by Franklin Pezzuti-Dyer ********\n")
+            self.out_file.write("; ******* and Leah Buechley ***********************\n")
+            self.out_file.write("; ******* Hand and Machine Lab, UNM, 2022 *********\n")
+            self.out_file.write("; *************************************************\n")
+            self.out_file.write("; *************************************************\n")
+            self.out_file.write("; *************** Printer parameters **************\n")
+            self.out_file.write("; Printer: " + self.printer + "\n")
+            self.out_file.write("; Nozzle size: " + str(self.nozzle) + "\n")
+            self.out_file.write("; Extrude width: " + str(self.extrude_width) + "\n")
+            self.out_file.write("; Layer height: " + str(self.layer_height) + "\n")
+            self.out_file.write("; Extrude rate: " + str(self.extrude_rate) + "\n")
+            self.out_file.write("; Speed: " + str(self.speed) + "\n")
+
+            # write printer initialization sequence 
             self.initseq_file = open(self.initseq_filename, 'r')
             self.do(self.initseq_file.read().format(**locals()))
             self.initseq_file.close()
+            self.set_speed(self.speed);
+            self.out_file.write("; *************** End printer initialization **************\n")
+
+    def name(self, filename):
+        self.out_filename = filename
+
+    def write_gcode_comment(self, comment):
+        self.out_file.write("; " + comment + "\n")
 
     def finish(self):
         if self.write_gcode:
@@ -113,19 +153,52 @@ class ExtruderTurtle:
             self.finalseq_file.close()
             self.out_file.close()
 
-    def set_density(self, density):
-        self.density = density
+    def do(self, cmd):
+        if self.write_gcode:
+            self.out_file.write(cmd + "\n")
 
-    def set_extrude_rate(self, density):
-        self.density = density
+    def set_extrude_rate(self, extrude_rate):
+        self.extrude_rate = extrude_rate
+
+    def set_density(self, extrude_rate):
+        self.extrude_rate = extrude_rate
+
+    def rate(self, feedrate):
+        self.do(self.G1f.format(f=feedrate))
+
+    def set_feedrate(self, feedrate):
+        self.do(self.G1f.format(f=feedrate))
+
+    def set_speed(self, feedrate):
+        self.do(self.G1f.format(f=feedrate))
+
+    def dwell(self, ms):
+        self.do(self.G4p.format(p=ms))
+
+    def pause_and_wait(self):
+        self.do(self.M0)
+
+    def extrude(self, quantity):
+        self.do(self.G1e.format(e=quantity))
+
+    def bed_temp(self, temp):
+        self.do(self.M140s.format(s=temp))
+
+    def extruder_temp(self, temp):
+        self.do(self.M104s.format(s=temp))
+
+
+    ###################################################################
+    # Turtle functions
+    ###################################################################
 
     def penup(self):
         self.pen = False
-        self.do(self.G1e.format(e=-3))
+        #self.do(self.G1e.format(e=-3))
 
     def pendown(self):
         self.pen = True
-        self.do(self.G1e.format(e=3))
+        #self.do(self.G1e.format(e=3))
 
     def yaw(self, angle):
         theta = self.convert_angle(angle)
@@ -177,14 +250,9 @@ class ExtruderTurtle:
     def change_heading(self, yaw=0, pitch=0, roll=0):
         self.set_heading(self.yaw + yaw, self.pitch + pitch, self.roll + roll)
 
-    def rate(self, feedrate):
-        self.do(self.G1f.format(f=feedrate))
-
-    def set_feedrate(self, feedrate):
-        self.do(self.G1f.format(f=feedrate))
-
-    def set_speed(self, feedrate):
-        self.do(self.G1f.format(f=feedrate))
+    def convert_angle(self, angle):
+        if self.use_degrees: return math.radians(angle)
+        return angle
 
     def record_move(self, dx, dy, dz, de=0):
         if self.track_history:
@@ -196,7 +264,7 @@ class ExtruderTurtle:
                 self.extrusion_history.append(de)
 
     def forward(self, distance):
-        extrusion = abs(distance) * self.density
+        extrusion = round(abs(distance) * self.extrude_rate, 5)
         dx = distance * self.forward_vec[0]
         dy = distance * self.forward_vec[1]
         dz = distance * self.forward_vec[2]
@@ -213,13 +281,13 @@ class ExtruderTurtle:
             self.do(self.G1xyz.format(x=dx, y=dy, z=dz))
 
     def forward_lift(self, distance, height):
-        extrusion = round(math.sqrt(distance**2+height**2) * self.density,3)
+        extrusion = round(math.sqrt(distance**2+height**2) * self.extrude_rate,5)
         dx = distance * self.forward_vec[0] + height * self.up_vec[0]
         dy = distance * self.forward_vec[1] + height * self.up_vec[1]
         dz = distance * self.forward_vec[2] + height * self.up_vec[2]
-        dx = round(dx, 4)
-        dy = round(dy, 4)
-        dz = round(dz, 4)
+        dx = round(dx, 5)
+        dy = round(dy, 5)
+        dz = round(dz, 5)
         self.x += dx
         self.y += dy
         self.z += dz
@@ -239,17 +307,27 @@ class ExtruderTurtle:
         self.record_move(0, 0, height)
 
     def set_position(self, x=False, y=False, z=False):
-        if x == False: x = self.x
-        if y == False: y = self.y
-        if z == False: z = self.z
-        dx = round(x-self.x, 4)
-        dy = round(y-self.y, 4)
-        dz = round(z-self.z, 4)
+        if x is False: x = self.x
+        if y is False: y = self.y
+        if z is False: z = self.z
+        dx = round(x-self.x, 5)
+        dy = round(y-self.y, 5)
+        dz = round(z-self.z, 5)
         self.x = x
         self.y = y
         self.z = z
         distance = math.sqrt(dx*dx+dy*dy+dz*dz)
-        extrusion = abs(distance) * self.density
+
+        #!!!! NOTE should keep track of all angles, right now only yaw
+        if (distance!=0):
+            angle = math.degrees(math.acos(dx/distance))
+        else:
+            angle = 0
+        self.left(-self.get_yaw())
+        self.left(angle)
+        if (dy < 0):
+            self.left((180-angle)*2)
+        extrusion = abs(distance) * self.extrude_rate
         self.record_move(dx, dy, dz, de=extrusion)
         if self.pen:
             self.do(self.G1xyze.format(x=dx, y=dy, z=dz, e=extrusion))
@@ -291,21 +369,6 @@ class ExtruderTurtle:
         net_roll = math.atan2(y, x)
         if self.use_degrees: return math.degrees(net_roll)
         return self.net_roll
-
-    def dwell(self, ms):
-        self.do(self.G4p.format(p=ms))
-
-    def pause_and_wait(self):
-        self.do(self.M0)
-
-    def extrude(self, quantity):
-        self.do(self.G1e.format(e=quantity))
-
-    def bed_temp(self, temp):
-        self.do(self.M140s.format(s=temp))
-
-    def extruder_temp(self, temp):
-        self.do(self.M104s.format(s=temp))
 
     def draw_turtle(self):
         new_forward = [math.cos(math.radians(90))*self.forward_vec[i] + math.sin(math.radians(90))*self.left_vec[i] for i in range(3)]

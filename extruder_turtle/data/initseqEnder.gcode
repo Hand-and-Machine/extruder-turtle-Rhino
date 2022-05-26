@@ -1,4 +1,4 @@
- ; ############### begin header for Ender ############## 
+; *************** Ender initialization **************
 G92 E0 ; Reset Extruder 
 G28 ; Home all axes
 G90 ; Absolute coordinates for X,Y,Z   
@@ -15,12 +15,9 @@ G1 X5 Y20 Z0.3 F5000.0 ; Move over to prevent blob squish
 G92 E0 ; Reset extruder position to zero 
 G1 F300 E-3 
 G1 F2000
-G1 0 0 .3               ; lift nozzle above bed a little
-
-G1 X100 Y100 Z.1       ; go to the starting position 
+G1 0 0 .3               ; Lift nozzle above bed a little
+G1 X100 Y100 Z.1        ; Go to the starting position 
 F300 E3                 ; Extrude to get ready
-
-G1 F{feedrate}			; set the speed/feedrate
+G1 F{speed}             ; Set the speed
 M83 					; Relative extrustion
-G91                     ; relative coordinates for X,Y,Z axes
-; ###############  end header  ##############  
+G91                     ; Relative coordinates for X,Y,Z axes
