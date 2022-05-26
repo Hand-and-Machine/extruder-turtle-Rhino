@@ -63,24 +63,27 @@ class ExtruderTurtle:
                     bed_temp=60
                     ):
         
-        if (printer and filename):
+        if (filename):
             self.out_filename = filename
             self.write_gcode = True
             self.out_file = True;
             self.initseq_file = True;
             self.finalseq_file = True;
             self.finalseq_filename = os.path.join(__location__, "data/finalseq.gcode")
+        if (printer):
             self.set_printer(printer)
+        if (filename and printer):
             self.write_header_comments()
         else:
-            print("Can't write file. No printer selected or filename given.")
+            print("Warning can't write file. No printer selected or filename given.")
             
         if self.track_history: self.prev_points = [(x,y,z)]
 
     # set printer parameters
     def set_printer(self,printer):
         if (printer=="Ender"):
-            self.initseq_filename = os.path.join(__location__, "data/initseqEnder.gcode") 
+            if(self.filename):
+                self.initseq_filename = os.path.join(__location__, "data/initseqEnder.gcode") 
             self.nozzle = .2
             self.extrude_width = .4 
             self.layer_height = .2
@@ -88,7 +91,8 @@ class ExtruderTurtle:
             self.speed = 1000 #mm/minute
             self.printer = "ender"
         elif (printer=="3D potter" or printer=="3Dpotter" or printer=="3D Potter"  or printer=="3d potter"):
-            self.initseq_filename = os.path.join(__location__, "data/initseq3DPotter.gcode")
+            if(self.out_file):
+                self.initseq_filename = os.path.join(__location__, "data/initseq3DPotter.gcode")
             self.nozzle = 3.0
             self.extrude_width = 3.5 #mostly for solid bottoms
             self.layer_height = 2.2
@@ -96,7 +100,8 @@ class ExtruderTurtle:
             self.speed = 1000 #mm/minute
             self.printer = "3Dpotter"
         elif (printer=="Eazao" or printer=="eazao"):
-            self.initseq_filename = os.path.join(__location__, "data/initseqEazao.gcode")
+            if(self.out_file):
+                self.initseq_filename = os.path.join(__location__, "data/initseqEazao.gcode")
             self.nozzle = 1.5
             self.extrude_width = 1.5 
             self.layer_height = .9
@@ -106,7 +111,8 @@ class ExtruderTurtle:
         else:
             print ("No printer set!!")
 
-        self.finalseq_filename = os.path.join(__location__, "data/finalseq.gcode")
+        if(self.out_file):
+            self.finalseq_filename = os.path.join(__location__, "data/finalseq.gcode")
 
     ###################################################################
     # GCODE functions
@@ -159,6 +165,21 @@ class ExtruderTurtle:
 
     def set_extrude_rate(self, extrude_rate):
         self.extrude_rate = extrude_rate
+
+    def get_extrude_rate(self):
+        return self.extrude_rate
+
+    def set_extrude_width(self, extrude_width):
+        self.extrude_width = extrude_width
+
+    def get_extrude_width(self):
+        return self.extrude_width
+
+    def set_layer_height(self, layer_height):
+        self.layer_height = layer_height
+
+    def get_layer_height(self):
+        return self.layer_height
 
     def set_density(self, extrude_rate):
         self.extrude_rate = extrude_rate
