@@ -56,11 +56,11 @@ class ExtruderTurtle:
     def setup(self, x=0,
                     y=0,
                     z=0,
+                    filename=False,
+                    printer=False,
                     feedrate=1000,
                     hotend_temp=205,
-                    bed_temp=60,
-                    filename=False,
-                    printer=False
+                    bed_temp=60
                     ):
         
         if (printer and filename):
