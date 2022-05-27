@@ -1,6 +1,7 @@
 import copy
 import Rhino.Geometry as geom
 import rhinoscriptsyntax as rs
+import ExtruderTurtle as e
 
 def translate(g,x,y,z):
 	translation = geom.Transform.Translation(x,y,z)
@@ -31,14 +32,14 @@ def scale_copy(g,scale_factor):
 	return shape.Transform(scale)
 
 def surfaceForSlice(z,size):
-    points = []
-    points.append(rs.CreatePoint(-size,-size,z))
-    points.append(rs.CreatePoint(-size,size,z))
-    points.append(rs.CreatePoint(size,size,z))
-    points.append(rs.CreatePoint(size,-size,z))
-    plane = rs.AddSrfPt(points)
-    return plane
-    
+	points = []
+	points.append(rs.CreatePoint(-size,-size,z))
+	points.append(rs.CreatePoint(-size,size,z))
+	points.append(rs.CreatePoint(size,size,z))
+	points.append(rs.CreatePoint(size,-size,z))
+	plane = rs.AddSrfPt(points)
+	return plane
+	
 def slice_solid (shape, layer_height):
 	bb = rs.BoundingBox(shape)
 	height = rs.Distance(bb[0], bb[4])
@@ -57,18 +58,19 @@ def slice_solid (shape, layer_height):
 		z = z+layer_height
 	return slices
 
-def slice_with_turtle (t, shape):
+def slice_with_turtle (t, shape, walls = 1, bottom = False):
 	resolution = 1
 	layer_height = t.get_layer_height()
 	if (layer_height == 0):
 		layer_height = 1
 	bb = rs.BoundingBox(shape)
 	height = rs.Distance(bb[0], bb[4])
-	layers = int(height/layer_height)
+	layers = int(round(height/layer_height))
 	size = rs.Distance(bb[0], bb[2])
 	planes = []
 	slices = []
 	z = 0
+	#generate slice curves
 	for i in range (0,layers):
 		plane = surfaceForSlice(z,size)
 		planes.append(plane)
@@ -79,23 +81,83 @@ def slice_with_turtle (t, shape):
 		z = z+layer_height
 
 	layers = len(slices)
+	#follow slice curves with turtle
 	for i in range (0,layers):
-	    points = rs.DivideCurve (slices[i], 100)
-	    ll = line_length(points)
-	    num_points = int(ll/resolution)+1
-	    points = rs.DivideCurve (slices[i], num_points)
-	    follow_closed_line_simple_bumps(t,points)
-	    t.lift(layer_height)
-
+		points = rs.DivideCurve (slices[i], 100)
+		ll = line_length(points)
+		num_points = int(ll/resolution)+1
+		points = rs.DivideCurve (slices[i], num_points)
+		follow_closed_line(t,points,walls=walls)
+		# if (i==0 and bottom):
+		# 	spiral_bottom(t,points)
+		t.penup()
+		t.lift(layer_height)
+		t.pendown()
 
 #generates a turtle path from a list of rhinoscript points
-def follow_closed_line(t,points,z_inc=0):
-	for i in range (len(points)):
-		t.set_position(points[i].X,points[i].Y)
-		t.lift(z_inc)
-
+def follow_closed_line(t,points,z_inc=0, walls = 1):
 	t.set_position(points[0].X,points[0].Y)
+	t2 = e.ExtruderTurtle()
+
+	points2 = []
+	for i in range (1, len(points)):
+		t.set_position(points[i].X,points[i].Y)
+		if (walls>1):
+			t2.penup()
+			t2.set_position(points[i].X,points[i].Y)
+			t2.right(90)
+			t2.forward(t.get_extrude_width())
+			x1 = t2.getX()
+			y1 = t2.getY()
+			z1 = t2.getZ()
+			t2.backward(t.get_extrude_width())
+			t2.left(90)
+			points2.append(rs.CreatePoint(x1,y1,z1))
+	t.set_position(points[0].X,points[0].Y)
+
+	if (walls>1):
+		for i in range (1, len(points2)):
+			t.set_position(points2[i].X,points2[i].Y)
+		t.set_position(points2[0].X,points2[0].Y)
+
 	t.lift(z_inc)
+
+#incomplete
+def spiral_bottom(t,curve,resolution=False):
+	if (resolution==False):
+		resolution = t.get_extrude_width()
+	points = rs.DivideCurve (curve, 100)
+	ll = line_length(points)
+	num_points = int(ll/resolution)+1
+	points = rs.DivideCurve (curve, num_points)
+	t2 = e.ExtruderTurtle()
+	follow_closed_line(t,points)
+
+	# number of spirals
+	for j in range(0,4):
+		points2 = []
+		for i in range (0, len(points)):
+			t2.penup()
+			t2.set_position(points[i].X,points[i].Y)
+			t2.right(90)
+			t2.forward(t.get_extrude_width()*.75)
+			x1 = t2.getX()
+			y1 = t2.getY()
+			z1 = t2.getZ()
+			t2.backward(t.get_extrude_width()*.75)
+			t2.left(90)
+			new_point = rs.CreatePoint(x1,y1,z1)
+			t.set_position(new_point.X,new_point.Y)
+			points2.append(new_point)
+		curve = rs.AddCurve(points2,2)
+		intersections = rs.CurveCurveIntersection(curve)
+		if (intersections!=None):
+			print("intersections found at " +str(j+1))
+			print(intersections)
+		points = rs.DivideCurve (curve, 100)
+		ll = line_length(points)
+		num_points = int(ll/resolution)+1
+		points = rs.DivideCurve (curve, num_points)
 
 def line_length(points):
 	length = 0
@@ -124,7 +186,7 @@ def bump_triangle(t,bump_length, bump_width, c_inc, d_theta,z_inc=0):
 	y0 = t.getY()
 	z0 = t.getZ()
 	yaw0 = t.get_yaw()
-	t2 = ExtruderTurtle()
+	t2 = e.ExtruderTurtle()
 	t2.set_position(x0,y0,z0)
 	t2.set_heading(yaw0)
 	if (bump_width==0):
@@ -180,7 +242,7 @@ def follow_closed_line_simple_bumps(t,points,num_bumps=0,bump_length=0, bump_sta
 
 def follow_closed_line_weave(t,points,num_oscillations=50.0, amplitude = 5, z_inc=0):
 	num_points = len(points)
-	t2 = ExtruderTurtle()
+	t2 = e.ExtruderTurtle()
 	dtheta = 360.0/num_points
 	theta = 0
 	x0 = 0
