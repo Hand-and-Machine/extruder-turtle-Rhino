@@ -327,6 +327,13 @@ class ExtruderTurtle:
         height = round(height,5)
         self.record_move(0, 0, height)
 
+    # set position from a rhinoscript point
+    def set_position_point(self,point):
+        self.x = point.X
+        self.y = point.Y
+        self.z = point.Z
+
+    # set position from optional x, y, and z values
     def set_position(self, x=False, y=False, z=False):
         if x is False: x = self.x
         if y is False: y = self.y
@@ -354,6 +361,10 @@ class ExtruderTurtle:
             self.do(self.G1xyze.format(x=dx, y=dy, z=dz, e=extrusion))
         else:
             self.do(self.G1xyz.format(x=dx, y=dy, z=dz))
+
+    # get position as a rhinoscript point
+    def get_position(self):
+        return rs.CreatePoint(self.x, self.y, self.z)
 
     def getX(self):
         return self.x

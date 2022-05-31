@@ -2,6 +2,7 @@ import copy
 import Rhino.Geometry as geom
 import rhinoscriptsyntax as rs
 import ExtruderTurtle as e
+import operator as op
 
 def translate(g,x,y,z):
 	translation = geom.Transform.Translation(x,y,z)
@@ -39,6 +40,20 @@ def surfaceForSlice(z,size):
 	points.append(rs.CreatePoint(size,-size,z))
 	plane = rs.AddSrfPt(points)
 	return plane
+
+def convex_hull(points):
+	start = a
+	hull_points = []
+	lines = []
+	while a:
+		o = a
+		a = points[0]
+		for b in points:
+			if (a[0]-o[0])*(b[1]-o[1])-(a[1]-o[1])*(b[0]-o[0]) < 0: a = b
+		lines.append(rs.AddLine(o,a))
+		hull_points.append(o)
+		if a == start: break
+	return lines, hull_points
 	
 def slice_solid (shape, layer_height):
 	bb = rs.BoundingBox(shape)
@@ -124,14 +139,9 @@ def follow_closed_line(t,points,z_inc=0, walls = 1):
 
 #incomplete
 def spiral_bottom(t,curve,resolution=False):
-	if (resolution==False):
-		resolution = t.get_extrude_width()
-	points = rs.DivideCurve (curve, 100)
-	ll = line_length(points)
-	num_points = int(ll/resolution)+1
-	points = rs.DivideCurve (curve, num_points)
+	points = curve_to_points(curve,resolution)
 	t2 = e.ExtruderTurtle()
-	follow_closed_line(t,points)
+	#follow_closed_line(t,points)
 
 	# number of spirals
 	for j in range(0,4):
@@ -147,17 +157,106 @@ def spiral_bottom(t,curve,resolution=False):
 			t2.backward(t.get_extrude_width()*.75)
 			t2.left(90)
 			new_point = rs.CreatePoint(x1,y1,z1)
-			t.set_position(new_point.X,new_point.Y)
+			if (j==3):
+				t.set_position(new_point.X,new_point.Y)
 			points2.append(new_point)
 		curve = rs.AddCurve(points2,2)
 		intersections = rs.CurveCurveIntersection(curve)
 		if (intersections!=None):
-			print("intersections found at " +str(j+1))
-			print(intersections)
+			print("number of intersections " +str(len(intersections)))
+			print("first intersection: " +str(intersections[0][1]))
+			#print(intersections)
+			return intersections
 		points = rs.DivideCurve (curve, 100)
 		ll = line_length(points)
 		num_points = int(ll/resolution)+1
 		points = rs.DivideCurve (curve, num_points)
+
+#assumes curve is flat, doesn't work for non-planar curves
+def zig_zag_bottom(t,curve, resolution = False):
+	if (resolution==False):
+		resolution = t.get_extrude_width()
+	points = curve_to_points(curve,resolution)
+	#find bounding box points, will define slicing line boundaries
+	minPx = min(points, key=op.itemgetter(0))
+	maxPx = max(points, key=op.itemgetter(0))
+	minPy = min(points, key=op.itemgetter(1))
+	maxPy = max(points, key=op.itemgetter(1))
+	z = minPx.Z
+	t.penup()
+	x = minPx.X
+	t.set_position(minPx.X, minPx.Y)
+	t.pendown()
+	x = x + t.get_extrude_width()
+	index = go_to_point_on_curve(t,curve,minPx)
+	print("index: " +str(index))
+	while (x < maxPx.X):
+		# generate slicing line
+		# slice in x
+		# x increment = one spacing width
+		# line = current x from miny to maxy
+		line = rs.AddLine(rs.CreatePoint(x,minPy.Y,z),rs.CreatePoint(x,maxPy.Y,z))
+		# check for intersections between line and curve
+		intersections = rs.CurveCurveIntersection(curve,line)
+		# find intersection at curve turtle is on
+		# travel along curve to the intersection
+		# jump to intersection across curve, stay inside shape
+
+		# if (intersections and len(intersections)==2):
+		# 	t.set_position(intersections[0][1].X,intersections[0][1].Y)
+		# 	t.set_position(intersections[1][1].X,intersections[1][1].Y)
+		# 	print("t position: " +str(t.getX()) +", " +str(t.getY()))
+		for i in range (len(intersections)):
+			d = distance_on_curve(t,curve,intersections[i][1],index)
+			if (d <resolution*2):
+				print("found the point at i: " +str(i))
+				t.set_position_point(points[i])
+			print("distance: " +str(d))
+
+		x = x + t.get_extrude_width()
+
+def curve_to_points(curve,resolution):
+	if (resolution==False):
+		resolution = t.get_extrude_width()
+	points = rs.DivideCurve (curve, 100)
+	ll = line_length(points)
+	num_points = int(ll/resolution)
+	points = rs.DivideCurve (curve, num_points)
+	return points
+
+# go to point on curve, start at beginning of curve
+def go_to_point_on_curve(t,curve,point,resolution = False):
+	if (resolution==False):
+		resolution = t.get_extrude_width()
+	points = curve_to_points(curve,resolution)
+	t.penup()
+	for i in range (len(points)):
+		d = rs.Distance(points[i],point)
+		t.set_position_point(points[i])
+		if (d <resolution*2):
+			t.pendown()
+			return i
+	print("Point was not on curve. At end of curve.")
+	return 0
+
+# distance between t and point on curve
+# index is index of t's position on curve/points array
+# assumes t is on the curve
+def distance_on_curve(t,curve,point,index, resolution = False):
+	if (resolution==False):
+		resolution = t.get_extrude_width()
+	points = curve_to_points(curve,resolution)
+	distance = resolution*1000
+	# only goes forward along curve
+	# might have to go backward
+	for i in range (index,len(points)-1):
+		d = rs.Distance(points[i],point)
+		distance = distance + rs.Distance(points[i],points[i+1])
+		if (d <=resolution):
+			return distance
+
+	print("Point was not on curve. At end of curve.")
+	return distance
 
 def line_length(points):
 	length = 0
@@ -218,7 +317,6 @@ def bump_triangle(t,bump_length, bump_width, c_inc, d_theta,z_inc=0):
 	t.set_position(x2,y2,z2)
 	# NOTE should do for all angles, right now yaw only
 	t.set_heading(yaw)
-
 
 
 def follow_closed_line_simple_bumps(t,points,num_bumps=0,bump_length=0, bump_start = 0, z_inc=0):
