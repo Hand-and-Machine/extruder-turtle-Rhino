@@ -92,7 +92,10 @@ def slice_with_turtle (t, shape, walls = 1):
 		planes.append(plane)
 		intersection = rs.BooleanIntersection(plane, shape, delete_input=False)
 		surfaces = rs.ExplodePolysurfaces(intersection, delete_input=False)
-		curves = rs.DuplicateEdgeCurves(surfaces[2])
+		if (len(surfaces)>1)
+			curves = rs.DuplicateEdgeCurves(surfaces[2])
+		else:
+			break
 		slices.append(curves[0])
 		z = z+layer_height
 
