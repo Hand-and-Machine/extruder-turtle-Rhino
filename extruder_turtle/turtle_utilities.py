@@ -60,48 +60,64 @@ def slice_solid (shape, layer_height):
 	bb = rs.BoundingBox(shape)
 	height = rs.Distance(bb[0], bb[4])
 	layers = int(height/layer_height)
-	size = rs.Distance(bb[0], bb[2])
-	planes = []
+	size = rs.Distance(bb[0], bb[2])*2
 	slices = []
 	z = 0
 	for i in range (0,layers):
-		plane = surfaceForSlice(z,size)
-		planes.append(plane)
-		intersection = rs.BooleanIntersection(plane, shape, delete_input=False)
-		surfaces = rs.ExplodePolysurfaces(intersection, delete_input=False)
-		curves = rs.DuplicateEdgeCurves(surfaces[2])
-		slices.append(curves[0])
+		slice = one_slice(shape,z,size)
+		if (slice):
+			slices.append(slice)
 		z = z+layer_height
 	return slices
 
-def slice_with_turtle (t, shape, walls = 1):
+def one_slice(shape,z,size):
+	plane = surfaceForSlice(z,size)
+	intersection = rs.BooleanIntersection(plane, shape, delete_input=False)
+	if (intersection):
+		surfaces = rs.ExplodePolysurfaces(intersection, delete_input=False)
+	else:
+		return
+	if (len(surfaces)>1):
+		curves = rs.DuplicateEdgeCurves(surfaces[2])
+		if (len(curves)>1):
+			curves = rs.JoinCurves(curves)
+		return curves[0]
+
+def slice_with_turtle (t, shape, walls = 1, layer_height=False, bottom=False):
 	resolution = t.get_resolution()
-	layer_height = t.get_layer_height()
-	if (layer_height == 0):
-		layer_height = 1
+	if (layer_height==False or layer_height == 0):
+		layer_height = t.get_layer_height()
 	bb = rs.BoundingBox(shape)
 	height = rs.Distance(bb[0], bb[4])
 	layers = int(round(height/layer_height))
-	size = rs.Distance(bb[0], bb[2])
-	planes = []
+	size = rs.Distance(bb[0], bb[2])*2
 	slices = []
 	z = 0
+
 	#generate slice curves
-	for i in range (0,layers):
-		plane = surfaceForSlice(z,size)
-		planes.append(plane)
-		intersection = rs.BooleanIntersection(plane, shape, delete_input=False)
-		surfaces = rs.ExplodePolysurfaces(intersection, delete_input=False)
-		if (len(surfaces)>1)
-			curves = rs.DuplicateEdgeCurves(surfaces[2])
-		else:
-			break
-		slices.append(curves[0])
+	for i in range (0,layers+1):
+		slice = one_slice(shape,z,size)
+		if (slice):
+			slices.append(slice)
 		z = z+layer_height
+
+	#slice the top layer
+	z = height
+	slice = one_slice(shape,z,size)
+	if (slice):
+		slices.append(slice)
+
+	if (bottom):
+		for i in range (0,bottom):
+			spiral_bottom_convex_shape(t,slices[0])
+			t.lift(layer_height)
+		start = 1
+	else:
+		start = 0
 
 	layers = len(slices)
 	#follow slice curves with turtle
-	for i in range (0,layers):
+	for i in range (start,layers):
 		points = rs.DivideCurve (slices[i], 100)
 		ll = line_length(points)
 		num_points = int(ll/resolution)+1
@@ -110,6 +126,7 @@ def slice_with_turtle (t, shape, walls = 1):
 		t.penup()
 		t.lift(layer_height)
 		t.pendown()
+	return slices
 
 #generates a turtle path from a list of rhinoscript points
 def follow_closed_line(t,points,z_inc=0, walls = 1):
@@ -124,6 +141,7 @@ def follow_closed_line(t,points,z_inc=0, walls = 1):
 	points2 = []
 	for i in range (1, len(points)):
 		t.set_position(points[i].X,points[i].Y)
+		t.lift(z_inc)
 		if (walls>1):
 			t2.set_position(points[i].X,points[i].Y)
 			t2.right(90)
@@ -134,6 +152,7 @@ def follow_closed_line(t,points,z_inc=0, walls = 1):
 			t2.backward(t.get_extrude_width())
 			t2.left(90)
 			points2.append(rs.CreatePoint(x1,y1,z1))
+
 	t.set_position(points[0].X,points[0].Y)
 
 	while (walls>1):
@@ -147,43 +166,46 @@ def follow_closed_line(t,points,z_inc=0, walls = 1):
 		if (walls > 1):
 			follow_closed_line(t, points2, walls = walls)
 
-	t.lift(z_inc)
 
-#incomplete
-def spiral_bottom(t,curve):
+# generates a bottom for convex shapes
+# does not work for concave shapes
+def spiral_bottom_convex_shape(t,curve):
 	resolution = t.get_resolution()
 	points = curve_to_points(curve,resolution)
 	t2 = e.ExtruderTurtle()
-	#follow_closed_line(t,points)
+	t2.penup()
+	ll = line_length(points)
+	num_points = int(ll/t.get_extrude_width())
+	previous_num_points = num_points
+	follow_closed_line(t,points)
 
-	# number of spirals
-	for j in range(0,4):
+	count = 0
+	while (num_points > t.get_extrude_width()*6 and count < 50):
+		print(num_points)
 		points2 = []
-		for i in range (0, len(points)):
-			t2.penup()
+		t2.set_position(points[0].X,points[0].Y)
+		for i in range (1, len(points)):
 			t2.set_position(points[i].X,points[i].Y)
 			t2.right(90)
-			t2.forward(t.get_extrude_width()*.75)
+			t2.forward(t.get_extrude_width())
 			x1 = t2.getX()
 			y1 = t2.getY()
 			z1 = t2.getZ()
-			t2.backward(t.get_extrude_width()*.75)
+			t2.backward(t.get_extrude_width())
 			t2.left(90)
 			new_point = rs.CreatePoint(x1,y1,z1)
-			if (j==3):
-				t.set_position(new_point.X,new_point.Y)
+			t.set_position(new_point.X,new_point.Y)
 			points2.append(new_point)
+
 		curve = rs.AddCurve(points2,2)
-		intersections = rs.CurveCurveIntersection(curve)
-		if (intersections!=None):
-			# print("number of intersections " +str(len(intersections)))
-			# print("first intersection: " +str(intersections[0][1]))
-			#print(intersections)
-			return intersections
 		points = rs.DivideCurve (curve, 100)
 		ll = line_length(points)
-		num_points = int(ll/resolution)+1
+		previous_num_points = num_points
+		num_points = int(ll/t.get_extrude_width())
+		if (num_points>previous_num_points):
+			return
 		points = rs.DivideCurve (curve, num_points)
+		count = count+1
 
 #assumes curve is flat, doesn't work for non-planar curves
 def zig_zag_bottom(t,curve):
