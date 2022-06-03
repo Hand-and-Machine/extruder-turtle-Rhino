@@ -104,7 +104,6 @@ def follow_slice_curves_with_turtle(t,slices,walls=1,spiral_up=False):
 			follow_closed_line(t,points,walls=walls)
 
 def slice_with_turtle (t, shape, walls = 1, layer_height=False, bottom=False, spiral_up=False):
-	resolution = t.get_resolution()
 	
 	if (layer_height==False or layer_height == 0):
 		layer_height = t.get_layer_height()
@@ -114,7 +113,12 @@ def slice_with_turtle (t, shape, walls = 1, layer_height=False, bottom=False, sp
 	layers = int(round(height/layer_height)) # number of slices
 	size = rs.Distance(bb[0], bb[6])*2 # size of slicing plane
 	slices = []
-	z = 0
+	z = bb[0].Z
+
+	slice = one_slice(shape,z,size)
+	if (slice==False):
+		print("Slicing error. Move your shape closer to the origin for slicing.")
+		return
 
 	#generate slice curves
 	for i in range (0,layers+1):
@@ -129,13 +133,9 @@ def slice_with_turtle (t, shape, walls = 1, layer_height=False, bottom=False, sp
 	if (slice):
 		slices.append(slice)
 
-	if (bottom):
-		for i in range (0,bottom):
-			spiral_bottom_convex_shape(t,slices[0])
-			t.lift(layer_height)
-		start = 1
-	else:
-		start = 0
+	if (bottom and len(slices)>0):
+		spiral_bottom_convex_shape(t,slices[0])
+		t.lift(layer_height)
 
 	layers = len(slices)
 	#follow slice curves with turtle
@@ -156,17 +156,23 @@ def max_distance_between_slices(points0,points1):
 def slice_with_turtle_even_layers (t, shape, walls = 1, layer_height=False, bottom=False, spiral_up=False):
 	if (layer_height==False or layer_height == 0):
 		layer_height = t.get_layer_height()
+
 	bb = rs.BoundingBox(shape)
 	height = rs.Distance(bb[0], bb[4])
-	size = rs.Distance(bb[0], bb[2])*2
+	size = rs.Distance(bb[0], bb[6])*2 # size of slicing plane
 	slices = []
-	z = 0
+	z = bb[0].Z
+
 	slice = one_slice(shape,z,size)
-	points = rs.DivideCurve (slice, 20)
+	if (slice):
+		points = rs.DivideCurve (slice, 20)
+	else: 
+		print("Slicing error. Move your shape closer to the origin for slicing.")
+		return
 
 	#generate slice curves
 	count_main = 0
-	while (z < height and count_main <100):
+	while (z < height-bb[0].Z and count_main <100):
 		count_main = count_main + 1
 		# measure max distance between point this slice & previous slice
 		# calculate z based on that distance
@@ -175,9 +181,8 @@ def slice_with_turtle_even_layers (t, shape, walls = 1, layer_height=False, bott
 		points = rs.DivideCurve (slice, 20)
 		maxd = max_distance_between_slices(previous_points,points)
 		count = 0
-		if (maxd>layer_height):
+		if (maxd>layer_height*1.1):
 			theta = math.asin(layer_height/maxd)
-			#print(math.degrees(theta))
 			new_layer_height = math.sin(theta)*layer_height
 			#print(new_layer_height)
 			z = z-layer_height+new_layer_height
@@ -187,7 +192,10 @@ def slice_with_turtle_even_layers (t, shape, walls = 1, layer_height=False, bott
 		# if you're close to the top of the shape
 		# make sure you account for thinner layers
 		if (z+layer_height >= height):
-			z = z+layer_height/2
+			if (new_layer_height):
+				z = z+new_layer_height
+			else:
+				z = z+layer_height/2
 		else:
 			z = z+layer_height
 
@@ -197,10 +205,12 @@ def slice_with_turtle_even_layers (t, shape, walls = 1, layer_height=False, bott
 			slices.append(slice)
 
 	#slice the top layer
-	z = height-.001
-	slice = one_slice(shape,z,size)
-	if (slice):
-		slices.append(slice)
+	current_z = z
+	final_z = height-bb[0].Z-.05
+	if (final_z-current_z>=layer_height/3):
+		slice = one_slice(shape,z,size)
+		if (slice):
+			slices.append(slice)
 
 	follow_slice_curves_with_turtle(t,slices,walls=walls,spiral_up=spiral_up)
 
@@ -209,7 +219,7 @@ def slice_with_turtle_even_layers (t, shape, walls = 1, layer_height=False, bott
 
 #generates a turtle path from a list of rhinoscript points
 def follow_closed_line(t,points,z_inc=0,walls = 1):
-	t.penup()
+	#t.penup()
 	t2 = e.ExtruderTurtle()
 	if (z_inc==0 or walls > 1):
 		t2.set_position(points[0].X,points[0].Y,points[0].Z)
