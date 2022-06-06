@@ -156,7 +156,7 @@ class ExtruderTurtle:
         self.out_filename = filename
 
     def write_gcode_comment(self, comment):
-        if (out_file):
+        if (self.out_file):
             self.out_file.write("; " + comment + "\n")
 
     def finish(self):
