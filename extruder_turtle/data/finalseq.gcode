@@ -1,5 +1,5 @@
 ; *************** End of print **************
-G1 F5000 Z50            ; Move extruder above print 50mm and to 0,0 in XY
+G1 F5000 Z20            ; Move extruder above print 50mm 
 G90                     ; Absolute coordinates  
 G1 F5000 X0 Y0          ; Move extruder to 0,0 in XY
 M104 S0                 ; Cool down hotend

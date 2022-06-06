@@ -3,6 +3,8 @@ import math
 import rhinoscriptsyntax as rs
 __location__ = os.path.dirname(__file__)
 
+gcode_decimal_places = 3
+
 class ExtruderTurtle:
 
     def __init__(self):
@@ -106,12 +108,12 @@ class ExtruderTurtle:
             if(self.out_file):
                 self.initseq_filename = os.path.join(__location__, "data/initseqEazao.gcode")
             self.nozzle = 1.5
-            self.extrude_width = 1.5 
-            self.layer_height = .9
-            self.extrude_rate = 1 #mm extruded/mm
-            self.speed = 2500 #mm/minute
+            self.extrude_width = 1.75 
+            self.layer_height = 1.0
+            self.extrude_rate = .6 #mm extruded/mm
+            self.speed = 2000 #mm/minute
             self.printer = "eazao"
-            self.resolution = .5
+            self.resolution = 0.5
         else:
             print ("No printer set!!")
 
@@ -168,6 +170,8 @@ class ExtruderTurtle:
             self.out_file.write(cmd + "\n")
 
     def set_extrude_rate(self, extrude_rate):
+        self.write_gcode_comment("Changed extrude rate to: " +str(extrude_rate))
+        self.write_gcode_comment("*************************************************************")
         self.extrude_rate = extrude_rate
 
     def get_extrude_rate(self):
@@ -276,6 +280,9 @@ class ExtruderTurtle:
         self.pitch(pitch)
         self.roll(roll)
 
+    def set_angle(self, yaw):
+        self.yaw(yaw)
+
     def change_heading(self, yaw=0, pitch=0, roll=0):
         self.set_heading(self.yaw + yaw, self.pitch + pitch, self.roll + roll)
 
@@ -293,13 +300,13 @@ class ExtruderTurtle:
                 self.extrusion_history.append(de)
 
     def forward(self, distance):
-        extrusion = round(abs(distance) * self.extrude_rate, 5)
+        extrusion = round(abs(distance) * self.extrude_rate, gcode_decimal_places)
         dx = distance * self.forward_vec[0]
         dy = distance * self.forward_vec[1]
         dz = distance * self.forward_vec[2]
-        dx = round(dx, 5)
-        dy = round(dy, 5)
-        dz = round(dz, 5)
+        dx = round(dx, gcode_decimal_places)
+        dy = round(dy, gcode_decimal_places)
+        dz = round(dz, gcode_decimal_places)
         self.x += dx
         self.y += dy
         self.z += dz
@@ -310,13 +317,13 @@ class ExtruderTurtle:
             self.do(self.G1xyz.format(x=dx, y=dy, z=dz))
 
     def forward_lift(self, distance, height):
-        extrusion = round(math.sqrt(distance**2+height**2) * self.extrude_rate,5)
+        extrusion = round(math.sqrt(distance**2+height**2) * self.extrude_rate, gcode_decimal_places)
         dx = distance * self.forward_vec[0] + height * self.up_vec[0]
         dy = distance * self.forward_vec[1] + height * self.up_vec[1]
         dz = distance * self.forward_vec[2] + height * self.up_vec[2]
-        dx = round(dx, 5)
-        dy = round(dy, 5)
-        dz = round(dz, 5)
+        dx = round(dx, gcode_decimal_places)
+        dy = round(dy, gcode_decimal_places)
+        dz = round(dz, gcode_decimal_places)
         self.x += dx
         self.y += dy
         self.z += dz
@@ -332,7 +339,7 @@ class ExtruderTurtle:
     def lift(self, height):
         self.do(self.G1z.format(z=height))
         self.z += height
-        height = round(height,5)
+        height = round(height,gcode_decimal_places)
         self.record_move(0, 0, height)
 
     # set position from a rhinoscript point
@@ -344,9 +351,9 @@ class ExtruderTurtle:
         if x is False: x = self.x
         if y is False: y = self.y
         if z is False: z = self.z
-        dx = round(x-self.x, 5)
-        dy = round(y-self.y, 5)
-        dz = round(z-self.z, 5)
+        dx = round(x-self.x, gcode_decimal_places)
+        dy = round(y-self.y, gcode_decimal_places)
+        dz = round(z-self.z, gcode_decimal_places)
         self.x = x
         self.y = y
         self.z = z
@@ -361,7 +368,7 @@ class ExtruderTurtle:
         self.left(angle)
         if (dy < 0):
             self.left((180-angle)*2)
-        extrusion = abs(distance) * self.extrude_rate
+        extrusion = round(abs(distance) * self.extrude_rate, gcode_decimal_places)
         self.record_move(dx, dy, dz, de=extrusion)
         if self.pen:
             self.do(self.G1xyze.format(x=dx, y=dy, z=dz, e=extrusion))

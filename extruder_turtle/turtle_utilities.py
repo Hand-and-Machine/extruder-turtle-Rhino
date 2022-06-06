@@ -83,28 +83,7 @@ def one_slice(shape,z,size):
 			curves = rs.JoinCurves(curves)
 		return curves[0]
 
-def follow_slice_curves_with_turtle(t,slices,walls=1,spiral_up=False):
-
-	resolution = t.get_resolution()
-	#follow slice curves with turtle
-	layers = len(slices)
-	for i in range (0,layers):
-		points = rs.DivideCurve (slices[i], 100)
-		ll = line_length(points)
-		num_points = int(ll/resolution)+1
-		points = rs.DivideCurve (slices[i], num_points)
-		
-		# spiral up if possible and relevant
-		if (walls == 1 and spiral_up):
-			if (i < layers-1):
-				points_next = rs.DivideCurve (slices[i+1], num_points)
-				z_inc = (points_next[0].Z-points[0].Z)/num_points
-				follow_closed_line (t,points,z_inc=z_inc)
-		else:
-			follow_closed_line(t,points,walls=walls)
-
 def slice_with_turtle (t, shape, walls = 1, layer_height=False, bottom=False, spiral_up=False):
-	
 	if (layer_height==False or layer_height == 0):
 		layer_height = t.get_layer_height()
 
@@ -172,16 +151,18 @@ def slice_with_turtle_even_layers (t, shape, walls = 1, layer_height=False, bott
 
 	#generate slice curves
 	count_main = 0
+	new_layer_height = layer_height
 	while (z < height-bb[0].Z and count_main <100):
 		count_main = count_main + 1
 		# measure max distance between point this slice & previous slice
 		# calculate z based on that distance
 		previous_points = copy.deepcopy(points)
 		slice = one_slice(shape,z,size)
-		points = rs.DivideCurve (slice, 20)
+		if (slice):
+			points = rs.DivideCurve (slice, 20)
 		maxd = max_distance_between_slices(previous_points,points)
 		count = 0
-		if (maxd>layer_height*1.1):
+		if (maxd>layer_height*1.25):
 			theta = math.asin(layer_height/maxd)
 			new_layer_height = math.sin(theta)*layer_height
 			#print(new_layer_height)
@@ -205,21 +186,47 @@ def slice_with_turtle_even_layers (t, shape, walls = 1, layer_height=False, bott
 			slices.append(slice)
 
 	#slice the top layer
-	current_z = z
-	final_z = height-bb[0].Z-.05
-	if (final_z-current_z>=layer_height/3):
-		slice = one_slice(shape,z,size)
-		if (slice):
-			slices.append(slice)
+	z = height-.01
+	slice = one_slice(shape,z,size)
+	if (slice):
+		slices.append(slice)
+	else:
+		print("final slice failed")
 
 	follow_slice_curves_with_turtle(t,slices,walls=walls,spiral_up=spiral_up)
 
 	print("number of equal distanced slices is: " +str(len(slices)))
 	return slices
 
+# given a list of curves that slice a shape
+# follow curves with the turtle
+def follow_slice_curves_with_turtle(t,slices,walls=1,spiral_up=False):
+	resolution = t.get_resolution()
+
+	z0 = t.getZ()
+	layers = len(slices)
+	for i in range (0,layers):
+		points = rs.DivideCurve (slices[i], 100)
+		ll = line_length(points)
+		num_points = int(ll/resolution)+1
+		points = rs.DivideCurve (slices[i], num_points)
+		if (z0 != 0):
+			for i in range (num_points):
+				points[i].Z = points[i].Z+z0
+		
+		# spiral up if possible and relevant
+		if (walls == 1 and spiral_up):
+			if (i < layers-1):
+				points_next = rs.DivideCurve (slices[i+1], num_points)
+				z_inc = (points_next[0].Z-points[0].Z)/num_points
+				follow_closed_line (t,points,z_inc=z_inc)
+		else:
+			follow_closed_line(t,points,walls=walls)
+
 #generates a turtle path from a list of rhinoscript points
 def follow_closed_line(t,points,z_inc=0,walls = 1):
-	#t.penup()
+	smooth_seam = 3 # on multi-walled prints, stop extruding near the seam to avoid a bump
+	t.penup()
 	t2 = e.ExtruderTurtle()
 	if (z_inc==0 or walls > 1):
 		t2.set_position(points[0].X,points[0].Y,points[0].Z)
@@ -231,12 +238,17 @@ def follow_closed_line(t,points,z_inc=0,walls = 1):
 		else:
 			t.set_position(points[i].X,points[i].Y)
 			t.lift(z_inc)
-		t.pendown()
+		if (i>=smooth_seam):
+			t.pendown()
+		if ((i>=len(points)-smooth_seam) and walls>1):
+			t.penup()
 
 		if (walls>1):
 			t2.set_position(points[i].X,points[i].Y,points[i].Z)
+			t2.penup()
 			t2.right(90)
 			t2.forward(t.get_extrude_width())
+			t2.pendown()
 			x1 = t2.getX()
 			y1 = t2.getY()
 			z1 = t2.getZ()
@@ -254,10 +266,14 @@ def follow_closed_line(t,points,z_inc=0,walls = 1):
 	while (walls>1):
 		t.penup()
 		t.set_position(points2[0].X,points2[0].Y,points[0].Z)
-		t.pendown()
 		for i in range (1, len(points2)):
 			t.set_position(points2[i].X,points2[i].Y,points[i].Z)
-		t.set_position(points2[0].X,points2[0].Y,points[0].Z)
+			if (i>=smooth_seam):
+				t.pendown()
+			if (i>=len(points2)-smooth_seam):
+				t.penup()
+		
+		t.pendown()
 		walls = walls-1
 		if (walls > 1):
 			follow_closed_line(t, points2, walls = walls)
@@ -277,7 +293,7 @@ def spiral_bottom_convex_shape(t,curve):
 
 	count = 0
 	while (num_points > t.get_extrude_width()*6 and count < 50):
-		print(num_points)
+		#print(num_points)
 		points2 = []
 		t2.set_position(points[0].X,points[0].Y)
 		for i in range (1, len(points)):
@@ -507,7 +523,7 @@ def follow_closed_line_weave(t,points,num_oscillations=50.0, amplitude = 5, z_in
 # to avoid generating too many points for small shapes
 # minimum step size = resolution
 def adjust_circle_steps(diameter, steps, resolution):
-	resolution = resolution/5 # use smaller resolution here
+	#resolution = resolution # use smaller resolution here
 	circumference = diameter * math.pi
 	c_inc = circumference/steps
 	if (c_inc < resolution):
@@ -515,61 +531,67 @@ def adjust_circle_steps(diameter, steps, resolution):
 		steps = int(circumference/c_inc)
 	return steps
 
-#creates a polygon with the edge begining at the turtle's location
-def non_centered_poly(diameter, steps, t):
+#creates a circle or polygon with the edge begining at the turtle's location
+def non_centered_poly(t, diameter, steps=360):
 	steps = adjust_circle_steps(diameter, steps,t.get_resolution())
 	if (t.write_gcode):
 		t.write_gcode_comment("starting polygon")
 	circumference = diameter * math.pi
 	c_inc = circumference/steps
 	dtheta = 360.0/steps
+	t.right(dtheta/2)
 	
 	for i in range (steps):
 		t.forward(c_inc)
 		t.right(dtheta)
 
+	t.left(dtheta/2)
+
 def circular_bottom(t,diameter,layers):
 	for i in range (layers-1):
-		polygon_layer(diameter,360,t,return_to_center=True)
-		t.lift(t.get_layer_height()*1.25)
 		t.right(360/layers)
-	polygon_layer(diameter,360,t,return_to_center=False)		
+		polygon_layer(t,diameter,return_to_center=True,offset=(i+1)%2)
+		t.lift(t.get_layer_height()*1.25)
+
+	polygon_layer(t,diameter,return_to_center=False)	
 
 def circular_layer(t,diameter,spiral_up = True):
 	oscillating_circle(t,diameter, 0, 0, spiral_up = spiral_up)
 
 
 # creates a solid flat layer of polygons that spiral out from a center point
-def polygon_layer (diameter, steps, t, return_to_center = False):
-	steps = adjust_circle_steps(diameter, steps, t.get_resolution())
+def polygon_layer (t, diameter, steps=360, return_to_center = False, offset=0.0):
+	initial_position = t.get_position()
+	initial_angle = t.get_yaw()
 	if (t.write_gcode):
 		t.write_gcode_comment("starting solid layer")
-	d = t.get_extrude_width()*2
-	t.left(90)
-	t.forward(t.get_extrude_width())
-	t.right(90)
+	if (offset>0):
+		d = t.get_extrude_width()*3
+	else:
+		d = t.get_extrude_width()*2
 
 	t.extrude(10)
-	non_centered_poly(d,steps,t)
-	while (d < (diameter-t.get_extrude_width()*2)):
+	t.forward(d/2)
+	t.right(90)
+	while (d < diameter-t.get_extrude_width()*2):
+		non_centered_poly(t,d)
 		t.left(90)
 		t.forward(t.get_extrude_width())
 		t.right(90)
-		d = d+t.get_extrude_width()*2 
-		non_centered_poly(d,steps,t)
+		d = d+t.get_extrude_width()*2
 
+	non_centered_poly(t,d)
 	t.left(90)
 	t.forward((diameter-d)/2)
 	t.right(90)
-	non_centered_poly(diameter,steps,t)
+	if (d<diameter-t.get_extrude_width()):
+		non_centered_poly(t,diameter)
 
 	if (return_to_center):
 		t.penup()
-		t.left(90)
 		t.lift(1)
-		t.backward(diameter/2)
-		t.right(90)
-		t.lift(-1)
+		t.set_position_point(initial_position)
+		t.set_heading(yaw=initial_angle)
 		t.pendown()
 
 #creates a polygon centered around the turtle's current location
@@ -631,7 +653,7 @@ def filled_oscillating_circle_xy(diameter, a, nOscillations, t, steps=360):
 
 def oscillating_circle(t, diameter, nOscillationsxy, axy, nOscillationsz=0, az=0, spiral_out=0, theta_offset=0, spiral_up = True):
 	# avoid generating too many points for small shapes
-	steps = adjust_circle_steps(diameter, 360,t.get_resolution())
+	steps = adjust_circle_steps(diameter,360,t.get_resolution())
 	circumference = diameter * math.pi
 	c_inc = circumference/steps
 	if (spiral_up):
