@@ -186,7 +186,7 @@ def slice_with_turtle_even_layers (t, shape, walls = 1, layer_height=False, bott
 			slices.append(slice)
 
 	#slice the top layer
-	z = height-.01
+	z = bb[7].Z-.01
 	slice = one_slice(shape,z,size)
 	if (slice):
 		slices.append(slice)
