@@ -162,9 +162,10 @@ def slice_with_turtle_even_layers (t, shape, walls = 1, layer_height=False, bott
 			points = rs.DivideCurve (slice, 20)
 		maxd = max_distance_between_slices(previous_points,points)
 		count = 0
-		if (maxd>layer_height*1.25):
+		desired_distance = layer_height*1.25
+		if (maxd>desired_distance): # generate a new slice
 			theta = math.asin(layer_height/maxd)
-			new_layer_height = math.sin(theta)*layer_height
+			new_layer_height = math.sin(theta)*desired_distance
 			#print(new_layer_height)
 			z = z-layer_height+new_layer_height
 			slice = one_slice(shape,z,size)
