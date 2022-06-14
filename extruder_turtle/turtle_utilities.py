@@ -33,7 +33,9 @@ def scale_copy(g,scale_factor):
 	scale= geom.Transform.Scale(rs.CreatePoint(0,0,0),scale_factor)
 	return shape.Transform(scale)
 
-def surfaceForSlice(z,size):
+# generates a surface of size*2 squared
+# around the origin at height z
+def surface_for_slice(z,size):
 	points = []
 	points.append(rs.CreatePoint(-size,-size,z))
 	points.append(rs.CreatePoint(-size,size,z))
@@ -53,9 +55,11 @@ def convex_hull(points):
 			if (a[0]-o[0])*(b[1]-o[1])-(a[1]-o[1])*(b[0]-o[0]) < 0: a = b
 		lines.append(rs.AddLine(o,a))
 		hull_points.append(o)
-		if a == start: break
+		if (a == start): 
+			break
 	return lines, hull_points
-	
+
+# slices a solid (shape)
 def slice_solid (shape, layer_height):
 	bb = rs.BoundingBox(shape)
 	height = rs.Distance(bb[0], bb[4])
@@ -70,8 +74,10 @@ def slice_solid (shape, layer_height):
 		z = z+layer_height
 	return slices
 
-def one_slice(shape,z,size):
-	plane = surfaceForSlice(z,size)
+# creates one slice of a shape at height z
+def one_slice(shape,z,size,plane = False):
+	if (plane==False):
+		plane = surface_for_slice(z,size)
 	intersection = rs.BooleanIntersection(plane, shape, delete_input=False)
 	if (intersection):
 		surfaces = rs.ExplodePolysurfaces(intersection, delete_input=False)
@@ -83,7 +89,9 @@ def one_slice(shape,z,size):
 			curves = rs.JoinCurves(curves)
 		return curves[0]
 
-def slice_with_turtle (t, shape, walls = 1, layer_height=False, bottom=False, spiral_up=False):
+# generates a turtle path and g-code that slices a solid (shape)
+# optional number of walls, walls are offset into interior of shape
+def slice_with_turtle (t, shape, walls = 1, layer_height=False, spiral_up=False):
 	if (layer_height==False or layer_height == 0):
 		layer_height = t.get_layer_height()
 
@@ -123,6 +131,7 @@ def slice_with_turtle (t, shape, walls = 1, layer_height=False, bottom=False, sp
 	print("number of slices of layer_height tall is: " +str(len(slices)))
 	return slices
 
+
 def max_distance_between_slices(points0,points1):
 	maxd = 0
 	for i in range (0, len(points0)):
@@ -132,6 +141,9 @@ def max_distance_between_slices(points0,points1):
 	return maxd
 
 
+# slices a shape with an equal distance between layers
+# calculates distance based on maximum total distance 
+# (vertical and horizontal) between layers
 def slice_with_turtle_even_layers (t, shape, walls = 1, layer_height=False, bottom=False, spiral_up=False):
 	if (layer_height==False or layer_height == 0):
 		layer_height = t.get_layer_height()
@@ -199,8 +211,8 @@ def slice_with_turtle_even_layers (t, shape, walls = 1, layer_height=False, bott
 	print("number of equal distanced slices is: " +str(len(slices)))
 	return slices
 
-# given a list of curves that slice a shape
-# follow curves with the turtle
+# given a list of curves that slice a shape (slices)
+# follow the curves with the turtle
 def follow_slice_curves_with_turtle(t,slices,walls=1,spiral_up=False):
 	resolution = t.get_resolution()
 
@@ -256,7 +268,6 @@ def follow_closed_line(t,points,z_inc=0,walls = 1):
 			t2.backward(t.get_extrude_width())
 			t2.left(90)
 			points2.append(rs.CreatePoint(x1,y1,z1))
-
 
 	#close the layer curve
 	if (z_inc==0 or walls > 1):
@@ -360,6 +371,8 @@ def zig_zag_bottom(t,curve):
 		# print("x slice: " +str(x))
 	return intersections_list
 
+# generates points from a curve
+# number of points determined by resolution
 def curve_to_points(curve,resolution):
 	points = rs.DivideCurve (curve, 100)
 	ll = line_length(points)
@@ -652,15 +665,15 @@ def filled_oscillating_circle_xy(diameter, a, nOscillations, t, steps=360):
 		a2 = a2+da
 	oscillating_circle_xy(diameter, a2, nOscillations, t, steps)
 
-def oscillating_circle(t, diameter, nOscillationsxy, axy, nOscillationsz=0, az=0, spiral_out=0, theta_offset=0, spiral_up = True):
+def oscillating_circle(t, diameter, nOscillationsxy, axy, nOscillationsz=0, az=0, spiral_out=0, theta_offset=0, spiral_up = True, z_inc=0):
 	# avoid generating too many points for small shapes
 	steps = adjust_circle_steps(diameter,360,t.get_resolution())
 	circumference = diameter * math.pi
 	c_inc = circumference/steps
-	if (spiral_up):
+	if (spiral_up and z_inc==0):
 		z_inc = t.get_layer_height()/steps
-	else:
-		z_inc = 0
+	elif (spiral_up):
+		z_inc = (t.get_layer_height()+z_inc)/steps
 
 	dtheta = 360.0/steps
 	# to get 180 degrees out of phase add: theta_one_oscillation/2

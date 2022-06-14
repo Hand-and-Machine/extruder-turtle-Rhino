@@ -94,9 +94,19 @@ class ExtruderTurtle:
             self.speed = 1000 #mm/minute
             self.printer = "ender"
             self.resolution = .05
-        elif (printer=="3D potter" or printer=="3Dpotter" or printer=="3D Potter"  or printer=="3d potter"):
+        elif (printer=="super" or printer=="3Dpotter" or printer=="3D Potter"  or printer=="3d potter"  or printer=="Super"):
             if(self.out_file):
                 self.initseq_filename = os.path.join(__location__, "data/initseq3DPotter.gcode")
+            self.nozzle = 3.0
+            self.extrude_width = 3.5 #mostly for solid bottoms
+            self.layer_height = 2.2
+            self.extrude_rate = 3.0 #mm extruded/mm
+            self.speed = 1000 #mm/minute
+            self.printer = "3Dpotter"
+            self.resolution = 1.0
+        elif (printer=="micro" or printer=="3DpotterMicro" or printer=="3D Potter Micro"  or printer=="Micro"):
+            if(self.out_file):
+                self.initseq_filename = os.path.join(__location__, "data/initseq3DPotterMicro.gcode")
             self.nozzle = 3.0
             self.extrude_width = 3.5 #mostly for solid bottoms
             self.layer_height = 2.2
