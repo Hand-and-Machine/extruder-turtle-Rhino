@@ -102,7 +102,7 @@ class ExtruderTurtle:
             self.layer_height = 2.2
             self.extrude_rate = 3.0 #mm extruded/mm
             self.speed = 1000 #mm/minute
-            self.printer = "3Dpotter"
+            self.printer = "3Dpotter Super"
             self.resolution = 1.0
         elif (printer=="micro" or printer=="3DpotterMicro" or printer=="3D Potter Micro"  or printer=="Micro"):
             if(self.out_file):
@@ -112,7 +112,7 @@ class ExtruderTurtle:
             self.layer_height = 2.2
             self.extrude_rate = 3.0 #mm extruded/mm
             self.speed = 1000 #mm/minute
-            self.printer = "3Dpotter"
+            self.printer = "3Dpotter Micro"
             self.resolution = 1.0
         elif (printer=="Eazao" or printer=="eazao"):
             if(self.out_file):
@@ -125,7 +125,7 @@ class ExtruderTurtle:
             self.printer = "eazao"
             self.resolution = 0.5
         else:
-            print ("No printer set!!")
+            print ("No printer set!! \nCheck the name of your printer and try again. \nWe support: super, micro, eazao, and ender")
 
         if(self.out_file):
             self.finalseq_filename = os.path.join(__location__, "data/finalseq.gcode")

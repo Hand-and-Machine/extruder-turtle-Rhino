@@ -435,7 +435,7 @@ def line_length(points):
 
 
 #bump_width in number of steps NOT mm
-def bump_square(t,bump_length,c_bump,dtheta,z_inc,bump_width=0):
+def bump_square(t,bump_length,c_bump,dtheta,z_inc=0,bump_width=0):
 	t.left(90)
 	t.forward(bump_length)
 	t.right(90)
@@ -457,7 +457,7 @@ def bump_triangle(t,bump_length, bump_width, c_inc, d_theta,z_inc=0):
 	t2.set_position(x0,y0,z0)
 	t2.set_heading(yaw0)
 	if (bump_width==0):
-		bump(t,bump_length, bump_width, c_inc, d_theta,z_inc=0)
+		bump_square(t,bump_length,0,d_theta)
 		return
 
 	for i in range (0,bump_width/2):
@@ -564,9 +564,10 @@ def non_centered_poly(t, diameter, steps=360):
 def circular_bottom(t,diameter,layers):
 	for i in range (layers-1):
 		t.right(360/layers)
-		polygon_layer(t,diameter,return_to_center=True,offset=(i+1)%2)
-		t.lift(t.get_layer_height()*1.25)
+		polygon_layer(t,diameter,return_to_center=True,offset=(i%2))
+		t.lift(t.get_layer_height()*1.15)
 
+	t.right(360/layers)
 	polygon_layer(t,diameter,return_to_center=False)	
 
 def circular_layer(t,diameter,spiral_up = True):
@@ -603,7 +604,7 @@ def polygon_layer (t, diameter, steps=360, return_to_center = False, offset=0.0)
 
 	if (return_to_center):
 		t.penup()
-		t.lift(1)
+		t.lift(t.get_layer_height()*2)
 		t.set_position_point(initial_position)
 		t.set_heading(yaw=initial_angle)
 		t.pendown()
