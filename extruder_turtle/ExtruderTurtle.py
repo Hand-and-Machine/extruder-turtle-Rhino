@@ -104,6 +104,9 @@ class ExtruderTurtle:
             self.speed = 1000 #mm/minute
             self.printer = "3Dpotter Super"
             self.resolution = 1.0
+            self.x_size = 400
+            self.y_size = 400
+            self.print_head_size = 102 # 3 inches
         elif (printer=="micro" or printer=="3DpotterMicro" or printer=="3D Potter Micro"  or printer=="Micro"):
             if(self.out_file):
                 self.initseq_filename = os.path.join(__location__, "data/initseq3DPotterMicro.gcode")
@@ -114,6 +117,9 @@ class ExtruderTurtle:
             self.speed = 1000 #mm/minute
             self.printer = "3Dpotter Micro"
             self.resolution = 1.0
+            self.x_size = 280
+            self.y_size = 265
+            self.print_head_size = 77 # 3 inches
         elif (printer=="Eazao" or printer=="eazao"):
             if(self.out_file):
                 self.initseq_filename = os.path.join(__location__, "data/initseqEazao.gcode")
@@ -124,6 +130,9 @@ class ExtruderTurtle:
             self.speed = 2000 #mm/minute
             self.printer = "eazao"
             self.resolution = 0.5
+            self.x_size = 150
+            self.y_size = 150
+            self.print_head_size = 64 # 2.5 inches
         else:
             print ("No printer set!! \nCheck the name of your printer and try again. \nWe support: super, micro, eazao, and ender")
 
@@ -131,7 +140,7 @@ class ExtruderTurtle:
             self.finalseq_filename = os.path.join(__location__, "data/finalseq.gcode")
 
     ###################################################################
-    # GCODE functions
+    # GCODE and printer functions
     ###################################################################
 
     def write_header_comments(self):
@@ -194,9 +203,20 @@ class ExtruderTurtle:
     def get_extrude_width(self):
         return self.extrude_width
 
+    def set_resolution(self, resolution):
+        self.resolution = resolution
 
     def get_resolution(self):
         return self.resolution
+
+    def set_nozzle_size(self, nozzle_size):
+        self.nozzle = nozzle_size
+        self.extrude_width = nozzle_size*1.15
+        self.layer_height = nozzle_size*.75
+        self.extrude_rate = nozzle_size
+
+    def get_nozzle_size(self):
+        return self.nozzle
 
     def set_layer_height(self, layer_height):
         self.layer_height = layer_height
@@ -225,12 +245,25 @@ class ExtruderTurtle:
     def extrude(self, quantity):
         self.do(self.G1e.format(e=quantity))
 
-    def bed_temp(self, temp):
+    def set_bed_temp(self, temp):
         self.do(self.M140s.format(s=temp))
 
-    def extruder_temp(self, temp):
+    def set_extruder_temp(self, temp):
         self.do(self.M104s.format(s=temp))
 
+    def draw_print_bed(self):
+        point1 = rs.AddPoint(-self.x_size/2, -self.y_size/2,0)
+        point2 = rs.AddPoint(-self.x_size/2, self.y_size/2,0)
+        point3 = rs.AddPoint(self.x_size/2, self.y_size/2,0)
+        point4 = rs.AddPoint(self.x_size/2, -self.y_size/2,0)
+        points = (point1, point2, point3, point4)
+        return rs.AddSrfPt(points)
+
+    def get_print_bed_size(self):
+        return self.x_size, self.y_size
+
+    def get_print_head_size(self):
+        return self.print_head_size
 
     ###################################################################
     # Turtle functions

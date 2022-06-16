@@ -447,8 +447,10 @@ def bump_square(t,bump_length,c_bump,dtheta,z_inc=0,bump_width=0):
 	t.forward(bump_length)
 	t.left(90)
 
-#bump_width in number of steps NOT mm
 def bump_triangle(t,bump_length, bump_width, c_inc, d_theta,z_inc=0):
+	# convert width into steps
+	number_steps = int(bump_width/c_inc)
+	
 	x0 = t.getX()
 	y0 = t.getY()
 	z0 = t.getZ()
@@ -460,7 +462,7 @@ def bump_triangle(t,bump_length, bump_width, c_inc, d_theta,z_inc=0):
 		bump_square(t,bump_length,0,d_theta)
 		return
 
-	for i in range (0,bump_width/2):
+	for i in range (0,number_steps/2):
 		t2.forward_lift(c_inc,z_inc)
 		t2.right(d_theta)
 	t2.left(90)
@@ -470,7 +472,7 @@ def bump_triangle(t,bump_length, bump_width, c_inc, d_theta,z_inc=0):
 	z1 = t2.getZ()
 	t2.backward(bump_length)
 	t2.right(90)
-	for i in range (0,bump_width/2):
+	for i in range (0,number_steps/2):
 		t2.forward_lift(c_inc,z_inc)
 		t2.right(d_theta)
 
@@ -599,7 +601,7 @@ def polygon_layer (t, diameter, steps=360, return_to_center = False, offset=0.0)
 	t.left(90)
 	t.forward((diameter-d)/2)
 	t.right(90)
-	if (d<diameter-t.get_extrude_width()):
+	if (d<diameter-t.get_extrude_width()/2):
 		non_centered_poly(t,diameter)
 
 	if (return_to_center):
