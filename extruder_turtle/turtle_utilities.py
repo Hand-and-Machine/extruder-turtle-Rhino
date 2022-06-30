@@ -89,9 +89,26 @@ def one_slice(shape,z,size,plane = False):
 			curves = rs.JoinCurves(curves)
 		return curves[0]
 
+# creates one slice of a shape at height z
+def slice_with_turtle (t, shape, walls = 1, layer_height=False, spiral_up=False):
+	if (layer_height==False or layer_height == 0):
+		layer_height = t.get_layer_height()
+	bb = rs.BoundingBox(shape)
+	height = rs.Distance(bb[0], bb[4])
+	layers = int(round(height/layer_height)) # number of slices
+	size = rs.Distance(bb[0], bb[6])*2 # size of slicing plane
+	point_bottom = (rs.CreatePoint(0,0,bb[0].Z))
+	point_top = (rs.CreatePoint(0,0,bb[4].Z))
+
+	slices = rs.AddSrfContourCrvs(shape,(point_bottom,point_top),layer_height)
+
+	follow_slice_curves_with_turtle(t,slices,walls=walls,spiral_up=spiral_up)
+
+	return slices
+
 # generates a turtle path and g-code that slices a solid (shape)
 # optional number of walls, walls are offset into interior of shape
-def slice_with_turtle (t, shape, walls = 1, layer_height=False, spiral_up=False):
+def slice_with_turtle_2 (t, shape, walls = 1, layer_height=False, spiral_up=False):
 	if (layer_height==False or layer_height == 0):
 		layer_height = t.get_layer_height()
 
@@ -131,7 +148,6 @@ def slice_with_turtle (t, shape, walls = 1, layer_height=False, spiral_up=False)
 	print("number of slices of layer_height tall is: " +str(len(slices)))
 	return slices
 
-
 def max_distance_between_slices(points0,points1):
 	maxd = 0
 	for i in range (0, len(points0)):
@@ -140,7 +156,6 @@ def max_distance_between_slices(points0,points1):
 			maxd = distance
 	return maxd
 
-
 # slices a shape with an equal distance between layers
 # calculates distance based on maximum total distance 
 # (vertical and horizontal) between layers
@@ -148,63 +163,100 @@ def slice_with_turtle_even_layers (t, shape, walls = 1, layer_height=False, bott
 	if (layer_height==False or layer_height == 0):
 		layer_height = t.get_layer_height()
 
+	num_comparison_points = 2
 	bb = rs.BoundingBox(shape)
 	height = rs.Distance(bb[0], bb[4])
-	size = rs.Distance(bb[0], bb[6])*2 # size of slicing plane
+	bottom_z = bb[0].Z
+	top_z = bb[4].Z
+	size = rs.Distance(bb[0], bb[6])*2 # size of slicing plane = diagonal*2
 	slices = []
-	z = bb[0].Z
+	z = bottom_z
+	print("z: " +str(z))
+	p0 = bb[0]
+	p1 = rs.CreatePoint(bb[0].X,bb[0].Y,z+.1)
+	slice = rs.AddSrfContourCrvs(shape,(p0,p1),layer_height)
 
-	slice = one_slice(shape,z,size)
+	#slice = one_slice(shape,z,size)
 	if (slice):
-		points = rs.DivideCurve (slice, 20)
+		points = rs.DivideCurve (slice[len(slice)-1], num_comparison_points)
 	else: 
 		print("Slicing error. Move your shape closer to the origin for slicing.")
 		return
 
 	#generate slice curves
 	count_main = 0
-	new_layer_height = layer_height
-	while (z < height-bb[0].Z and count_main <100):
-		count_main = count_main + 1
+	while (z < top_z and count_main <100):
+		print("z: " +str(z))
 		# measure max distance between point this slice & previous slice
 		# calculate z based on that distance
+		new_layer_height = 0
 		previous_points = copy.deepcopy(points)
-		slice = one_slice(shape,z,size)
+		p0 = rs.CreatePoint(bb[0].X,bb[0].Y,z)
+		p1 = rs.CreatePoint(bb[0].X,bb[0].Y,z+layer_height)
+		slice = rs.AddSrfContourCrvs(shape,(p0,p1),layer_height)
 		if (slice):
-			points = rs.DivideCurve (slice, 20)
+			points = rs.DivideCurve (slice[len(slice)-1], num_comparison_points)
+
 		maxd = max_distance_between_slices(previous_points,points)
-		count = 0
-		desired_distance = layer_height*1.25
+		desired_distance = layer_height*1.0
+		print("maxd: " +str(maxd))
 		if (maxd>desired_distance): # generate a new slice
+			print("generating new slice at layer: " +str(count_main))
 			theta = math.asin(layer_height/maxd)
 			new_layer_height = math.sin(theta)*desired_distance
-			#print(new_layer_height)
-			z = z-layer_height+new_layer_height
-			slice = one_slice(shape,z,size)
-			points = rs.DivideCurve (slice, 20)
+			print("new layer height: " +str(new_layer_height))
+			p0 = rs.CreatePoint(bb[0].X,bb[0].Y,z)
+			p1 = rs.CreatePoint(bb[0].X,bb[0].Y,z+new_layer_height)
+			slice = rs.AddSrfContourCrvs(shape,(p0,p1),new_layer_height*2)
+			points = rs.DivideCurve (slice[len(slice)-1], num_comparison_points)
 
 		# if you're close to the top of the shape
 		# make sure you account for thinner layers
-		if (z+layer_height >= height):
+		if (z+layer_height >= top_z-layer_height):
+			print("top slice")
 			if (new_layer_height):
-				z = z+new_layer_height
+				if (z+new_layer_height < top_z):
+					z = z+new_layer_height
+				else:
+					print("very top")
+					slices = slices + slice
+					z0 = bb[4].Z -.05
+					z = bb[4].Z+.05
+					p0 = rs.CreatePoint(bb[0].X,bb[0].Y,z0)
+					p1 = rs.CreatePoint(bb[0].X,bb[0].Y,z)
+					slice = rs.AddSrfContourCrvs(shape,(p0,p1),new_layer_height)
+					slices.append(slice[len(slice)-1])
+					break
 			else:
 				z = z+layer_height/2
+
 		else:
-			z = z+layer_height
+			if (new_layer_height>0):
+				print("adding new layer height")
+				z = z+new_layer_height
+			else:
+				print("adding normal layer height")
+				z = z+layer_height
 
 		#print("new distance: " +str(maxd))
-		if (slice and maxd>0):
-			#print("added slice")
-			slices.append(slice)
+		if (slice):
+			print("number new slices: " + str(len(slice)))
+			slices.append(slice[len(slice)-1])
 
+		count_main = count_main + 1
+	'''
 	#slice the top layer
 	z = bb[7].Z-.01
-	slice = one_slice(shape,z,size)
+	p0 = rs.CreatePoint(bb[0].X,bb[0].Y,z)
+	p1 = rs.CreatePoint(bb[0].X,bb[0].Y,z+layer_height)
+	slice = rs.AddSrfContourCrvs(shape,(p0,p1),layer_height)
+	#slice = one_slice(shape,z,size)
 	if (slice):
-		slices.append(slice)
+		slices = slices + slice
 	else:
 		print("final slice failed")
+	'''
+	return slices
 
 	follow_slice_curves_with_turtle(t,slices,walls=walls,spiral_up=spiral_up)
 
@@ -238,7 +290,7 @@ def follow_slice_curves_with_turtle(t,slices,walls=1,spiral_up=False):
 
 #generates a turtle path from a list of rhinoscript points
 def follow_closed_line(t,points,z_inc=0,walls = 1):
-	smooth_seam = 3 # on multi-walled prints, stop extruding near the seam to avoid a bump
+	smooth_seam = 0 # on multi-walled prints, stop extruding near the seam to avoid a bump
 	t.penup()
 	t2 = e.ExtruderTurtle()
 	if (z_inc==0 or walls > 1):
@@ -538,18 +590,19 @@ def follow_closed_line_weave(t,points,num_oscillations=50.0, amplitude = 5, z_in
 # adjust the number of steps in a circle 
 # to avoid generating too many points for small shapes
 # minimum step size = resolution
-def adjust_circle_steps(diameter, steps, resolution):
+def adjust_circle_steps(diameter, steps, resolution, layer_height):
 	#resolution = resolution # use smaller resolution here
 	circumference = diameter * math.pi
 	c_inc = circumference/steps
 	if (c_inc < resolution):
 		c_inc = resolution
 		steps = int(circumference/c_inc)
+
 	return steps
 
 #creates a circle or polygon with the edge begining at the turtle's location
 def non_centered_poly(t, diameter, steps=360):
-	steps = adjust_circle_steps(diameter, steps,t.get_resolution())
+	steps = adjust_circle_steps(diameter, steps,t.get_resolution(),t.get_layer_height())
 	if (t.write_gcode):
 		t.write_gcode_comment("starting polygon")
 	circumference = diameter * math.pi
@@ -564,10 +617,11 @@ def non_centered_poly(t, diameter, steps=360):
 	t.left(dtheta/2)
 
 def circular_bottom(t,diameter,layers):
+	t.extrude(t.get_nozzle_size()*3)
 	for i in range (layers-1):
 		t.right(360/layers)
 		polygon_layer(t,diameter,return_to_center=True,offset=(i%2))
-		t.lift(t.get_layer_height()*1.15)
+		t.lift(t.get_layer_height()*1.25)
 
 	t.right(360/layers)
 	polygon_layer(t,diameter,return_to_center=False)	
@@ -614,7 +668,7 @@ def polygon_layer (t, diameter, steps=360, return_to_center = False, offset=0.0)
 #creates a polygon centered around the turtle's current location
 def centered_poly(diameter, steps, t):
 	# avoid generating too many points for small shapes
-	steps = adjust_circle_steps(diameter, steps,t.get_resolution())
+	steps = adjust_circle_steps(diameter, steps,t.get_resolution(),t.get_layer_height())
 	r = diameter/2
 	circumference = diameter * math.pi
 	c_inc = circumference/steps
@@ -654,7 +708,7 @@ def polygon(side_length, steps, t):
 	t.pendown()
 
 def filled_oscillating_circle_xy(diameter, a, nOscillations, t, steps=360):
-	steps = adjust_circle_steps(diameter, steps,t.get_resolution())
+	steps = adjust_circle_steps(diameter, steps,t.get_resolution(),t.get_layer_height())
 	d = t.get_extrude_width()*2
 	number_cycles = diameter/(t.get_extrude_width()*2)
 	da = float(a)/number_cycles
@@ -670,13 +724,14 @@ def filled_oscillating_circle_xy(diameter, a, nOscillations, t, steps=360):
 
 def oscillating_circle(t, diameter, nOscillationsxy, axy, nOscillationsz=0, az=0, spiral_out=0, theta_offset=0, spiral_up = True, z_inc=0):
 	# avoid generating too many points for small shapes
-	steps = adjust_circle_steps(diameter,360,t.get_resolution())
+	steps = adjust_circle_steps(diameter,360,t.get_resolution(),t.get_layer_height())
 	circumference = diameter * math.pi
 	c_inc = circumference/steps
-	if (spiral_up and z_inc==0):
+	if (spiral_up):	
 		z_inc = t.get_layer_height()/steps
-	elif (spiral_up):
-		z_inc = (t.get_layer_height()+z_inc)/steps
+	else:
+		z_inc = 0
+	#print("z_inc x steps: " +str(round(z_inc,5)*steps))
 
 	dtheta = 360.0/steps
 	# to get 180 degrees out of phase add: theta_one_oscillation/2
@@ -685,7 +740,6 @@ def oscillating_circle(t, diameter, nOscillationsxy, axy, nOscillationsz=0, az=0
 	y0 = t.getY()
 	z0 = t.getZ()
 	z = z0
-	#z_inc = t.get_layer_height()/steps
 	# this is a problematic if statement. Will cause problems later!
 	if (x0==0):
 		theta0 = 0
@@ -710,7 +764,7 @@ def oscillating_circle(t, diameter, nOscillationsxy, axy, nOscillationsz=0, az=0
 
 def square_oscillating_circle(t,inner_diameter, outer_diameter, nOscillations):
 	# avoid generating too many points for small shapes
-	steps = adjust_circle_steps(diameter,360,t.get_resolution())
+	steps = adjust_circle_steps(diameter,360,t.get_resolution(),t.get_layer_height())
 	inner_radius = inner_diameter/2
 	outer_radius = outer_diameter/2
 	r_dif = outer_radius-inner_radius

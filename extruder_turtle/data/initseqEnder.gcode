@@ -18,6 +18,5 @@ G1 F2000
 G1 0 0 .3               ; Lift nozzle above bed a little
 G1 X100 Y100 Z.1        ; Go to the starting position 
 F300 E3                 ; Extrude to get ready
-G1 F{speed}             ; Set the speed
 M83 					; Relative extrustion
 G91                     ; Relative coordinates for X,Y,Z axes

@@ -11,6 +11,6 @@ M302
 M163 S0 P0.9; Set Mix Factor
 M163 S1 P0.1; Set Mix Factor
 M164 S0
-G0 F1800 X75.055 Y88.274 Z1 ; move to starting position
+G0 F1800 X75.0 Y88.0 Z0 ; move to starting position
 M83 					; Relative extrustion
 G91                     ; Relative coordinates for X,Y,Z axes

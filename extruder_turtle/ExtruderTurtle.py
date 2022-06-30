@@ -3,7 +3,6 @@ import math
 import rhinoscriptsyntax as rs
 __location__ = os.path.dirname(__file__)
 
-gcode_decimal_places = 3
 
 class ExtruderTurtle:
 
@@ -60,10 +59,7 @@ class ExtruderTurtle:
                     y=0,
                     z=0,
                     filename=False,
-                    printer=False,
-                    feedrate=1000,
-                    hotend_temp=205,
-                    bed_temp=60
+                    printer=False
                     ):
         
         if (filename):
@@ -84,25 +80,28 @@ class ExtruderTurtle:
 
     # set printer parameters
     def set_printer(self,printer):
-        if (printer=="Ender"):
-            if(self.filename):
+        if (printer=="Ender" or printer=="ender" or printer=="creatlity" ):
+            if(self.out_file):
                 self.initseq_filename = os.path.join(__location__, "data/initseqEnder.gcode") 
-            self.nozzle = .2
-            self.extrude_width = .4 
+            self.nozzle = 0.2
+            self.extrude_width = 0.4 
             self.layer_height = .2
-            self.extrude_rate = .05 #mm extruded/mm
+            self.extrude_rate = 0.05 #mm extruded/mm
             self.speed = 1000 #mm/minute
             self.printer = "ender"
             self.resolution = .05
+            self.x_size = 220
+            self.y_size = 220
+            gcode_decimal_places = 7
         elif (printer=="super" or printer=="3Dpotter" or printer=="3D Potter"  or printer=="3d potter"  or printer=="Super"):
             if(self.out_file):
                 self.initseq_filename = os.path.join(__location__, "data/initseq3DPotter.gcode")
             self.nozzle = 3.0
-            self.extrude_width = 3.5 #mostly for solid bottoms
+            self.extrude_width = 3.4 #mostly for solid bottoms
             self.layer_height = 2.2
             self.extrude_rate = 3.0 #mm extruded/mm
-            self.speed = 1000 #mm/minute
-            self.printer = "3Dpotter Super"
+            self.speed = 1000 #mm/minute = 16.6 mm/second
+            self.printer = "3D Potter Super"
             self.resolution = 1.0
             self.x_size = 400
             self.y_size = 400
@@ -111,11 +110,11 @@ class ExtruderTurtle:
             if(self.out_file):
                 self.initseq_filename = os.path.join(__location__, "data/initseq3DPotterMicro.gcode")
             self.nozzle = 3.0
-            self.extrude_width = 3.5 #mostly for solid bottoms
+            self.extrude_width = 3.4 #mostly for solid bottoms
             self.layer_height = 2.2
             self.extrude_rate = 3.0 #mm extruded/mm
-            self.speed = 1000 #mm/minute
-            self.printer = "3Dpotter Micro"
+            self.speed = 1500 #mm/minute = 16.6 mm/second
+            self.printer = "3D Potter Micro"
             self.resolution = 1.0
             self.x_size = 280
             self.y_size = 265
@@ -124,10 +123,10 @@ class ExtruderTurtle:
             if(self.out_file):
                 self.initseq_filename = os.path.join(__location__, "data/initseqEazao.gcode")
             self.nozzle = 1.5
-            self.extrude_width = 1.75 
-            self.layer_height = 1.0
-            self.extrude_rate = .6 #mm extruded/mm
-            self.speed = 2000 #mm/minute
+            self.extrude_width = 2.0
+            self.layer_height = 1.8
+            self.extrude_rate = 1.25 #mm extruded/mm
+            self.speed = 1000 #mm/minute
             self.printer = "eazao"
             self.resolution = 0.5
             self.x_size = 150
@@ -142,6 +141,22 @@ class ExtruderTurtle:
     ###################################################################
     # GCODE and printer functions
     ###################################################################
+
+    def print_parameters(self):
+        print("printer: " +str(self.printer))
+        print("nozzle size: " +str(self.nozzle))
+        print("speed: " +str(self.speed))
+        print("layer height: " +str(self.layer_height))
+        print("extrude rate: " +str(self.extrude_rate))
+        print("extrude width: " +str(self.extrude_width))
+
+    def print_printer_information(self):
+        print("printer: " +str(self.printer))
+        print("nozzle size: " +str(self.nozzle))
+        print("speed: " +str(self.speed))
+        print("layer height: " +str(self.layer_height))
+        print("extrude rate: " +str(self.extrude_rate))
+        print("extrude width: " +str(self.extrude_width))
 
     def write_header_comments(self):
         if self.write_gcode:
@@ -212,14 +227,25 @@ class ExtruderTurtle:
     def set_nozzle_size(self, nozzle_size):
         self.nozzle = nozzle_size
         self.extrude_width = nozzle_size*1.15
-        self.layer_height = nozzle_size*.75
+        self.layer_height = nozzle_size*.8
         self.extrude_rate = nozzle_size
+        print("nozzle size set to: " +str(nozzle_size))
+        print("extrude width set to: " +str(extrude_width))
+        print("extrude rate set to: " +str(extrude_rate))
+        print("layer height set to: " +str(layer_height))
+
+    def set_nozzle(self, nozzle_size):
+        set_nozzle_size(self,nozzle_size)
 
     def get_nozzle_size(self):
         return self.nozzle
 
+    def get_nozzle(self):
+        return self.nozzle
+
     def set_layer_height(self, layer_height):
         self.layer_height = layer_height
+        print("new layer height set: " +str(layer_height))
 
     def get_layer_height(self):
         return self.layer_height
@@ -236,7 +262,13 @@ class ExtruderTurtle:
     def set_speed(self, feedrate):
         self.do(self.G1f.format(f=feedrate))
 
+    def get_speed(self):
+        return self.speed
+
     def dwell(self, ms):
+        self.do(self.G4p.format(p=ms))
+
+    def pause(self, ms):
         self.do(self.G4p.format(p=ms))
 
     def pause_and_wait(self):
@@ -264,6 +296,9 @@ class ExtruderTurtle:
 
     def get_print_head_size(self):
         return self.print_head_size
+
+    def get_printer(self):
+        return self.printer
 
     ###################################################################
     # Turtle functions
@@ -344,47 +379,53 @@ class ExtruderTurtle:
                 self.extrusion_history.append(de)
 
     def forward(self, distance):
-        extrusion = round(abs(distance) * self.extrude_rate, gcode_decimal_places)
-        dx = distance * self.forward_vec[0]
-        dy = distance * self.forward_vec[1]
-        dz = distance * self.forward_vec[2]
-        dx = round(dx, gcode_decimal_places)
-        dy = round(dy, gcode_decimal_places)
-        dz = round(dz, gcode_decimal_places)
+        extrusion = abs(distance) * self.extrude_rate
+        dx = float(distance * self.forward_vec[0])
+        dy = float(distance * self.forward_vec[1])
+        dz = float(distance * self.forward_vec[2])
         self.x += dx
         self.y += dy
         self.z += dz
+        dx_w = '{:.6f}'.format(dx) 
+        dy_w = '{:.6f}'.format(dy) 
+        dz_w = '{:.6f}'.format(dz) 
+        e_w = '{:.6f}'.format(extrusion) 
         self.record_move(dx, dy, dz, de=extrusion)
         if self.pen:
-            self.do(self.G1xyze.format(x=dx, y=dy, z=dz, e=extrusion))
+            self.do(self.G1xyze.format(x=dx_w, y=dy_w, z=dz_w, e=e_w))
         else:
-            self.do(self.G1xyz.format(x=dx, y=dy, z=dz))
+            self.do(self.G1xyz.format(x=dx_w, y=dy_w, z=dz_w))
 
     def forward_lift(self, distance, height):
-        extrusion = round(math.sqrt(distance**2+height**2) * self.extrude_rate, gcode_decimal_places)
+        extrusion = math.sqrt(distance**2+height**2) * self.extrude_rate
         dx = distance * self.forward_vec[0] + height * self.up_vec[0]
         dy = distance * self.forward_vec[1] + height * self.up_vec[1]
         dz = distance * self.forward_vec[2] + height * self.up_vec[2]
-        dx = round(dx, gcode_decimal_places)
-        dy = round(dy, gcode_decimal_places)
-        dz = round(dz, gcode_decimal_places)
-        self.x += dx
-        self.y += dy
-        self.z += dz
+        self.x += float(dx)
+        self.y += float(dy)
+        self.z += float(dz)
+        dx_w = '{:.6f}'.format(dx) 
+        dy_w = '{:.6f}'.format(dy) 
+        dz_w = '{:.6f}'.format(dz) 
+        e_w = '{:.6f}'.format(extrusion)
         self.record_move(dx, dy, dz, de=extrusion)
         if self.pen:
-            self.do(self.G1xyze.format(x=dx, y=dy, z=dz, e=extrusion))
+            self.do(self.G1xyze.format(x=dx_w, y=dy_w, z=dz_w, e=e_w))
         else:
-            self.do(self.G1xyz.format(x=dx, y=dy, z=dz))
+            self.do(self.G1xyz.format(x=dx_w, y=dy_w, z=dz_w))
 
     def backward(self, distance):
         self.forward(-distance)
 
+    def back(self, distance):
+        self.forward(-distance)
+
     def lift(self, height):
-        self.do(self.G1z.format(z=height))
+        height = float(height)
         self.z += height
-        height = round(height,gcode_decimal_places)
         self.record_move(0, 0, height)
+        height = '{:.6f}'.format(height) 
+        self.do(self.G1z.format(z=height))
 
     # set position from a rhinoscript point
     def set_position_point(self,point):
@@ -395,13 +436,14 @@ class ExtruderTurtle:
         if x is False: x = self.x
         if y is False: y = self.y
         if z is False: z = self.z
-        dx = round(x-self.x, gcode_decimal_places)
-        dy = round(y-self.y, gcode_decimal_places)
-        dz = round(z-self.z, gcode_decimal_places)
+        dx = x-self.x
+        dy = y-self.y
+        dz = z-self.z
         self.x = x
         self.y = y
         self.z = z
         distance = math.sqrt(dx*dx+dy*dy+dz*dz)
+        extrusion = abs(distance) * self.extrude_rate
 
         #!!!! NOTE should keep track of all angles, right now only yaw
         if (distance!=0):
@@ -410,14 +452,16 @@ class ExtruderTurtle:
             angle = 0
         self.left(-self.get_yaw())
         self.left(angle)
-        if (dy < 0):
-            self.left((180-angle)*2)
-        extrusion = round(abs(distance) * self.extrude_rate, gcode_decimal_places)
+
+        dx_w = '{:.6f}'.format(float(dx)) 
+        dy_w = '{:.6f}'.format(float(dy)) 
+        dz_w = '{:.6f}'.format(float(dz)) 
+        e_w = '{:.6f}'.format(extrusion)
         self.record_move(dx, dy, dz, de=extrusion)
         if self.pen:
-            self.do(self.G1xyze.format(x=dx, y=dy, z=dz, e=extrusion))
+            self.do(self.G1xyze.format(x=dx_w, y=dy_w, z=dz_w, e=e_w))
         else:
-            self.do(self.G1xyz.format(x=dx, y=dy, z=dz))
+            self.do(self.G1xyz.format(x=dx_w, y=dy_w, z=dz_w))
 
     # get position as a rhinoscript point
     def get_position(self):
@@ -484,6 +528,9 @@ class ExtruderTurtle:
             if (l[0] != l[1]):
                 lines.append(rs.AddLine(l[0], l[1]))
         return lines
+
+    def get_path(self):
+        return get_lines(self)
 
     def get_last_line(self):
         i = len(self.line_segs)
