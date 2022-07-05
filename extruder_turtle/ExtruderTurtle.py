@@ -113,7 +113,7 @@ class ExtruderTurtle:
             self.extrude_width = 3.4 #mostly for solid bottoms
             self.layer_height = 2.2
             self.extrude_rate = 3.0 #mm extruded/mm
-            self.speed = 1500 #mm/minute = 16.6 mm/second
+            self.speed = 1000 #mm/minute = 16.6 mm/second
             self.printer = "3D Potter Micro"
             self.resolution = 1.0
             self.x_size = 280
@@ -123,8 +123,8 @@ class ExtruderTurtle:
             if(self.out_file):
                 self.initseq_filename = os.path.join(__location__, "data/initseqEazao.gcode")
             self.nozzle = 1.5
-            self.extrude_width = 2.0
-            self.layer_height = 1.8
+            self.extrude_width = 1.75
+            self.layer_height = 2.0
             self.extrude_rate = 1.25 #mm extruded/mm
             self.speed = 1000 #mm/minute
             self.printer = "eazao"
@@ -245,7 +245,7 @@ class ExtruderTurtle:
 
     def set_layer_height(self, layer_height):
         self.layer_height = layer_height
-        print("new layer height set: " +str(layer_height))
+        print("new layer height set: " +str(round(layer_height,3)))
 
     def get_layer_height(self):
         return self.layer_height
@@ -528,6 +528,13 @@ class ExtruderTurtle:
             if (l[0] != l[1]):
                 lines.append(rs.AddLine(l[0], l[1]))
         return lines
+
+    def get_points(self):
+        points = []
+        for l in self.line_segs:
+            if (l[0] != l[1]):
+                points.append(rs.CreatePoint(l[0][0],l[0][1],l[0][2]))
+        return points
 
     def get_path(self):
         return get_lines(self)

@@ -618,6 +618,8 @@ def non_centered_poly(t, diameter, steps=360):
 
 def circular_bottom(t,diameter,layers):
 	t.extrude(t.get_nozzle_size()*3)
+	extrude_rate = t.get_extrude_rate()
+	t.set_extrude_rate(extrude_rate/2)
 	for i in range (layers-1):
 		t.right(360/layers)
 		polygon_layer(t,diameter,return_to_center=True,offset=(i%2))
@@ -625,6 +627,7 @@ def circular_bottom(t,diameter,layers):
 
 	t.right(360/layers)
 	polygon_layer(t,diameter,return_to_center=False)	
+	t.set_extrude_rate(extrude_rate)
 
 def circular_layer(t,diameter,spiral_up = True):
 	oscillating_circle(t,diameter, 0, 0, spiral_up = spiral_up)
