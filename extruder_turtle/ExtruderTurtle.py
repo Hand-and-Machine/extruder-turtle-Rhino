@@ -230,12 +230,12 @@ class ExtruderTurtle:
         self.layer_height = nozzle_size*.8
         self.extrude_rate = nozzle_size
         print("nozzle size set to: " +str(nozzle_size))
-        print("extrude width set to: " +str(extrude_width))
-        print("extrude rate set to: " +str(extrude_rate))
-        print("layer height set to: " +str(layer_height))
+        print("extrude width set to: " +str(self.extrude_width))
+        print("extrude rate set to: " +str(self.extrude_rate))
+        print("layer height set to: " +str(self.layer_height))
 
     def set_nozzle(self, nozzle_size):
-        set_nozzle_size(self,nozzle_size)
+        self.set_nozzle_size(nozzle_size)
 
     def get_nozzle_size(self):
         return self.nozzle
@@ -439,24 +439,33 @@ class ExtruderTurtle:
         dx = x-self.x
         dy = y-self.y
         dz = z-self.z
-        self.x = x
-        self.y = y
-        self.z = z
+        self.x = float(x)
+        self.y = float(y)
+        self.z = float(z)
         distance = math.sqrt(dx*dx+dy*dy+dz*dz)
         extrusion = abs(distance) * self.extrude_rate
 
         #!!!! NOTE should keep track of all angles, right now only yaw
         if (distance!=0):
-            angle = math.degrees(math.acos(dx/distance))
+            yaw = math.degrees(math.acos(dx/distance))
+            self.left(-self.get_yaw()) # return to 0 heading
         else:
-            angle = 0
-        self.left(-self.get_yaw())
-        self.left(angle)
+            yaw = 0.0
+
+
+
+
+
+
+        if (dy>0):
+            self.left(float(yaw))
+        else:
+            self.left(-float(yaw))
 
         dx_w = '{:.6f}'.format(float(dx)) 
         dy_w = '{:.6f}'.format(float(dy)) 
         dz_w = '{:.6f}'.format(float(dz)) 
-        e_w = '{:.6f}'.format(extrusion)
+        e_w = '{:.6f}'.format(float(extrusion))
         self.record_move(dx, dy, dz, de=extrusion)
         if self.pen:
             self.do(self.G1xyze.format(x=dx_w, y=dy_w, z=dz_w, e=e_w))

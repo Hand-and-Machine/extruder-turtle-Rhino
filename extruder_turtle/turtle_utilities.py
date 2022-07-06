@@ -288,60 +288,6 @@ def follow_slice_curves_with_turtle(t,slices,walls=1,spiral_up=False):
 		else:
 			follow_closed_line(t,points,walls=walls)
 
-#generates a turtle path from a list of rhinoscript points
-def follow_closed_line(t,points,z_inc=0,walls = 1):
-	smooth_seam = 0 # on multi-walled prints, stop extruding near the seam to avoid a bump
-	t.penup()
-	t2 = e.ExtruderTurtle()
-	if (z_inc==0 or walls > 1):
-		t2.set_position(points[0].X,points[0].Y,points[0].Z)
-
-	points2 = []
-	for i in range (0, len(points)):
-		if (z_inc==0 or walls > 1):
-			t.set_position(points[i].X,points[i].Y,points[i].Z)
-		else:
-			t.set_position(points[i].X,points[i].Y)
-			t.lift(z_inc)
-		if (i>=smooth_seam):
-			t.pendown()
-		if ((i>=len(points)-smooth_seam) and walls>1):
-			t.penup()
-
-		if (walls>1):
-			t2.set_position(points[i].X,points[i].Y,points[i].Z)
-			t2.penup()
-			t2.right(90)
-			t2.forward(t.get_extrude_width())
-			t2.pendown()
-			x1 = t2.getX()
-			y1 = t2.getY()
-			z1 = t2.getZ()
-			t2.backward(t.get_extrude_width())
-			t2.left(90)
-			points2.append(rs.CreatePoint(x1,y1,z1))
-
-	#close the layer curve
-	if (z_inc==0 or walls > 1):
-		t.set_position(points[0].X,points[0].Y,points[0].Z)
-	else:
-		t.set_position(points[0].X,points[0].Y)
-
-	while (walls>1):
-		t.penup()
-		t.set_position(points2[0].X,points2[0].Y,points[0].Z)
-		for i in range (1, len(points2)):
-			t.set_position(points2[i].X,points2[i].Y,points[i].Z)
-			if (i>=smooth_seam):
-				t.pendown()
-			if (i>=len(points2)-smooth_seam):
-				t.penup()
-		
-		t.pendown()
-		walls = walls-1
-		if (walls > 1):
-			follow_closed_line(t, points2, walls = walls)
-
 
 # generates a bottom for convex shapes
 # does not work for concave shapes
@@ -540,8 +486,87 @@ def bump_triangle(t,bump_length, bump_width, c_inc, d_theta,z_inc=0):
 	# NOTE should do for all angles, right now yaw only
 	t.set_heading(yaw)
 
+#generates a turtle path from a list of rhinoscript points
+def follow_closed_line(t,points=False,curve=False,z_inc=0,walls = 1):
+	if (not(curve) and not(points)):
+		print("You need to provide this function with either a curve or a list of points")
+		return
+	if (curve):
+		print("got a curve")
+		resolution = t.get_resolution()
+		points = rs.DivideCurve (curve, 100)
+		ll = line_length(points)
+		num_points = int(ll/resolution)+1
+		points = rs.DivideCurve (curve, num_points)
+
+	smooth_seam = 0 # on multi-walled prints, stop extruding near the seam to avoid a bump
+	t.penup()
+	t2 = e.ExtruderTurtle()
+	if (z_inc==0 or walls > 1):
+		t2.set_position(points[0].X,points[0].Y,points[0].Z)
+	else:
+		t2.set_position(points[0].X,points[0].Y)
+
+	points2 = []
+	for i in range (0, len(points)):
+		if (z_inc==0 or walls > 1):
+			t.set_position(points[i].X,points[i].Y,points[i].Z)
+		else:
+			t.set_position(points[i].X,points[i].Y)
+			t.lift(z_inc)
+
+		if (i>=smooth_seam):
+			t.pendown()
+		if ((i>=len(points)-smooth_seam) and walls>1):
+			t.penup()
+
+		if (walls>1):
+			t2.set_position(points[i].X,points[i].Y,points[i].Z)
+			t2.penup()
+			t2.right(90)
+			t2.forward(t.get_extrude_width())
+			t2.pendown()
+			x1 = t2.getX()
+			y1 = t2.getY()
+			z1 = t2.getZ()
+			t2.backward(t.get_extrude_width())
+			t2.left(90)
+			points2.append(rs.CreatePoint(x1,y1,z1))
+
+	#close the layer curve
+	if (z_inc==0 or walls > 1):
+		t.set_position(points[0].X,points[0].Y,points[0].Z)
+	else:
+		t.set_position(points[0].X,points[0].Y)
+
+	while (walls>1):
+		t.penup()
+		t.set_position(points2[0].X,points2[0].Y,points[0].Z)
+		for i in range (1, len(points2)):
+			t.set_position(points2[i].X,points2[i].Y,points[i].Z)
+			if (i>=smooth_seam):
+				t.pendown()
+			if (i>=len(points2)-smooth_seam):
+				t.penup()
+		
+		t.pendown()
+		walls = walls-1
+		if (walls > 1):
+			follow_closed_line(t, points2, walls = walls)
+
 
 def follow_closed_line_simple_bumps(t,points,num_bumps=0,bump_length=0, bump_start = 0, z_inc=0):
+	if (not(curve) and not(points)):
+		print("You need to provide this function with either a curve or a list of points")
+		return
+	if (curve):
+		print("got a curve")
+		resolution = t.get_resolution()
+		points = rs.DivideCurve (curve, 100)
+		ll = line_length(points)
+		num_points = int(ll/resolution)+1
+		points = rs.DivideCurve (curve, num_points)
+
 	l = len(points)
 	if (num_bumps !=0):
 		bump_distance = int(l/num_bumps)
@@ -560,13 +585,29 @@ def follow_closed_line_simple_bumps(t,points,num_bumps=0,bump_length=0, bump_sta
 	t.set_position(points[0].X,points[0].Y)
 	t.lift(z_inc)
 
-def follow_closed_line_weave(t,points,num_oscillations=50.0, amplitude = 5, z_inc=0):
+def follow_closed_line_weave(t,points=False, curve=False, num_oscillations=50.0, amplitude = 2, z_inc=0):
+	if (not(curve) and not(points)):
+		print("You need to provide this function with either a curve or a list of points")
+		return
+	if (curve):
+		print("got a curve")
+		resolution = t.get_resolution()
+		points = rs.DivideCurve (curve, 100)
+		ll = line_length(points)
+		num_points = int(ll/resolution)+1
+		points = rs.DivideCurve (curve, num_points)
+
 	num_points = len(points)
 	t2 = e.ExtruderTurtle()
+	if (z_inc==0):
+		t2.set_position(points[0].X,points[0].Y,points[0].Z)
+	else:
+		t2.set_position(points[0].X,points[0].Y)
+
 	dtheta = 360.0/num_points
-	theta = 0
-	x0 = 0
-	y0 = 0
+	theta = 0.0
+	x0 = 0.0
+	y0 = 0.0
 	for i in range (0, num_points):
 		t2.set_position(points[i].X,points[i].Y)
 		delta = amplitude*math.cos(num_oscillations*math.radians(theta))

@@ -28,6 +28,10 @@ G91                     		; Relative coordinates for X,Y,Z axes
 G1 E5                 			; Extrude 5mm of clay
 G1 F1000
 ; *************** End printer initialization **************
+G1 X20.000000 Y0.000000 Z0.000000 E60.000000
+G1 X0.000000 Y20.000000 Z0.000000 E60.000000
+G1 X-20.000000 Y0.000000 Z0.000000 E60.000000
+G1 X-0.000000 Y-20.000000 Z0.000000 E60.000000
 ; *************** End of print **************
 G1 F5000 Z20            ; Move extruder above print 50mm 
 G90                     ; Absolute coordinates  
