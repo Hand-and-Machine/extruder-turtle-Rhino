@@ -5,8 +5,8 @@ G92 E0                          ; Reset Extruder
 G90 							; Absolute coordinates for X,Y,Z   
 ; M208 X0 Y0 Z0 S1              ; Set axis minima
 ; M208 X415 Y405 Z500 S0        ; Set axis maxima 
-G1 X132 Y150 Z25 F10000 		; Go to the starting position (center of bed) 25mm above print
-G1 F20000 E1000                 ; Prime Extruder, Extrude 1000mm of clay
+G1 X132 Y150 Z25 F5000 			; Go to the starting position (center of bed) 25mm above print
+G1 F5000 E1000                  ; Prime Extruder, Extrude 1000mm of clay
 G1 X132 Y150 Z0 F1000 			; Go to the starting position more slowly
 M83                             ; Relative extrusion
 G91                     		; Relative coordinates for X,Y,Z axes

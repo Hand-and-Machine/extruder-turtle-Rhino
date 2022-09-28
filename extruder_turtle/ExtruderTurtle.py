@@ -123,12 +123,12 @@ class ExtruderTurtle:
             if(self.out_file):
                 self.initseq_filename = os.path.join(__location__, "data/initseqEazao.gcode")
             self.nozzle = 1.5
-            self.extrude_width = 1.75
-            self.layer_height = 2.0
-            self.extrude_rate = 1.25 #mm extruded/mm
+            self.extrude_width = 2.5
+            self.layer_height = 1.0
+            self.extrude_rate = 1.1 #mm extruded/mm
             self.speed = 1000 #mm/minute
             self.printer = "eazao"
-            self.resolution = 0.5
+            self.resolution = 1.0
             self.x_size = 150
             self.y_size = 150
             self.print_head_size = 64 # 2.5 inches
@@ -269,7 +269,23 @@ class ExtruderTurtle:
         self.do(self.G4p.format(p=ms))
 
     def pause(self, ms):
-        self.do(self.G4p.format(p=ms))
+        if (self.printer=="ender"):
+            self.do(self.G4p.format(p=ms))
+        else:
+            self.write_gcode_comment("hack pause")
+            self.set_speed(60) # mm/minute
+            self.lift(-ms/1000)
+            self.set_speed(self.speed)
+
+    def pause_seconds(self, s):
+        ms = s*1000
+        if (self.printer=="ender"):
+            self.do(self.G4p.format(p=ms))
+        else:
+            self.write_gcode_comment("hack pause")
+            self.set_speed(60) # mm/minute
+            self.lift(-s/1000) 
+            self.set_speed(self.speed)
 
     def pause_and_wait(self):
         self.do(self.M0)
@@ -360,7 +376,7 @@ class ExtruderTurtle:
         self.roll(roll)
 
     def set_angle(self, yaw):
-        self.yaw(yaw)
+        self.yaw=yaw
 
     def change_heading(self, yaw=0, pitch=0, roll=0):
         self.set_heading(self.yaw + yaw, self.pitch + pitch, self.roll + roll)
@@ -544,6 +560,30 @@ class ExtruderTurtle:
             if (l[0] != l[1]):
                 points.append(rs.CreatePoint(l[0][0],l[0][1],l[0][2]))
         return points
+
+    def length_of_path(self):
+        total_distance = 0
+        for l in self.line_segs:
+            if (l[0] != l[1]):
+                total_distance = total_distance + rs.Distance(l[0],l[1])
+        #print("total distance of path in mm: " +str(round(total_distance,2)))
+        return total_distance
+
+    def volume_of_path(self):
+        total_distance = self.length_of_path()
+        volume = total_distance*math.pi*(self.extrude_width/2)*(self.extrude_width/2)*self.extrude_rate
+        #print("total volume of path in cubic mm: " +str(round(volume,2)))
+        print("total volume of path in ml: " +str(round(volume/1000, 2)))
+        print("total mm on large extruder: " +str(round(volume/1000/2)))
+        print("approximate time in minutes: " +str(total_distance/self.get_speed()))
+        return volume
+
+    #density must be in g/ml
+    def mass_of_path(self, density):
+        volume = self.volume_of_path()/1000
+        mass = volume*density
+        print("total mass of path in g: " +str(round(mass,2)))
+        return mass
 
     def get_path(self):
         return get_lines(self)
