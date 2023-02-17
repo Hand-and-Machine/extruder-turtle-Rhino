@@ -15,24 +15,28 @@ def rotate(g,angle):
 	g.Transform(rotation)
 	
 def scale(g,scale_factor):
-	scale= geom.Transform.Scale(rs.CreatePoint(0,0,0),scale_factor)
+	point = rs.CurveAreaCentroid(g)[0]
+	scale= geom.Transform.Scale(point,scale_factor)
 	g.Transform(scale)
 
 # versions of transformations that do not alter input shape
 def translate_copy(g,x,y,z):
 	shape = copy.deepcopy(g)
 	translation = geom.Transform.Translation(x,y,z)
-	return shape.Transform(translation)
+	shape.Transform(translation)
+	return shape
 	
 def rotate_copy(g,angle):
 	shape = copy.deepcopy(g)
 	rotation = geom.Transform.Rotation(math.radians(angle),rs.CreatePoint(0,0,0))
-	return shape.Transform(rotation)
+	shape.Transform(rotation)
+	return shape
 	
 def scale_copy(g,scale_factor):
 	shape = copy.deepcopy(g)
 	scale= geom.Transform.Scale(rs.CreatePoint(0,0,0),scale_factor)
-	return shape.Transform(scale)
+	shape.Transform(scale)
+	return shape
 
 # generates a surface of size*2 squared
 # around the origin at height z
