@@ -9,7 +9,7 @@
 
 ; *************** Eazao final sequence ***************
 G92 
-G1 E-10 F300
+; G1 E-10 F300
 G28 X0 Y0 ;move X Y to min endstops
 M82
 M84 ;steppers off
