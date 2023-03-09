@@ -11,7 +11,8 @@ def translate(g,x,y,z):
 	g.Transform(translation)
 	
 def rotate(g,angle):
-	rotation = geom.Transform.Rotation(math.radians(angle),rs.CreatePoint(0,0,0))
+	point = rs.CurveAreaCentroid(g)[0]
+	rotation = geom.Transform.Rotation(math.radians(angle),point)
 	g.Transform(rotation)
 	
 def scale(g,scale_factor):
@@ -114,7 +115,7 @@ def slice_with_turtle (t, shape, walls = 1, layer_height=False, spiral_up=False,
 	slices = rs.AddSrfContourCrvs(shape,(point_bottom,point_top),layer_height)
 
 	#follow slice curves with turtle
-	follow_slice_curves_with_turtle(t,slices,walls=walls,spiral_up=spiral_up)
+	follow_slice_curves_with_turtle(t,slices,walls=walls,spiral_up=spiral_up, bottom=bottom)
 
 	return slices
 
@@ -283,7 +284,7 @@ def follow_slice_curves_with_turtle(t,slices,walls=1, bottom = False, spiral_up=
 	if (bottom!=False):
 		bottom_layers = bottom
 	else:
-		bottom_layers = 3
+		bottom_layers = 0
 
 	#z0 = t.getZ()
 	points = rs.DivideCurve (slices[0], 100)
@@ -527,13 +528,14 @@ def follow_closed_line(t,points=False,curve=False,z_inc=0,walls = 1,matrix=False
 	if (not(curve) and not(points)):
 		print("You need to provide this function with either a curve or a list of points")
 		return
-	if (curve):
+	elif (curve):
 		#print("got a curve")
 		resolution = t.get_resolution()
 		points = rs.DivideCurve (curve, 100)
 		ll = line_length(points)
 		num_points = int(ll/resolution)+1
 		points = rs.DivideCurve (curve, num_points)
+
 
 	# on multi-walled prints
 	# stop extruding near the seam to avoid a bump
@@ -651,15 +653,14 @@ def spiral_bottom(t,curve,walls=1):
 					print("Couldn't get an area.")
 					break
 		else:
-			print("Challenging bottom 3. Exiting.")
+			#print("Challenging bottom 3. No viable offset curve. Exiting.")
 			break
 
 		# if you have reached the inner-most ring of bottom, get out of loop
 		if (area>previous_area):
-			print("Next area larger. ")
-			print("previous_area = " +str(previous_area) + ", area: " +str(area))
-			#follow_closed_line(t,curve=o)
-			print(i)
+			#print("Next area larger. ")
+			#print("previous_area = " +str(previous_area) + ", area: " +str(area))
+			#print(i)
 			break
 		else:
 			follow_closed_line(t,curve=o)

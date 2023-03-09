@@ -10,17 +10,19 @@ G92 E0
 M302 ; Allow cold extrusion
 
 ; play dough mix factor
-M163 S0 P0.95 ; Set Mix Factor small auger extruder
-M163 S1 P0.05 ; Set Mix Factor large plunger extruder
+M163 S0 P0.97 ; Set Mix Factor small auger extruder
+M163 S1 P0.03 ; Set Mix Factor large plunger extruder
 M164 S0		  ; Finalize mix
 
 ; standard clay mix factor
-; M163 S0 P0.9; Set Mix Factor small auger extruder
-; M163 S1 P0.1; Set Mix Factor large plunger extruder
+; M163 S0 P0.9   ; Set Mix Factor small auger extruder
+; M163 S1 P0.1   ; Set Mix Factor large plunger extruder
+; M164 S0		 ; Finalize mix
 
 ; mix factor for metal, testing
-; M163 S0 P0.99; Set Mix Factor small auger extruder
-; M163 S1 P0.01; Set Mix Factor large plunger extruder
+; M163 S0 P0.98; Set Mix Factor small auger extruder
+; M163 S1 P0.02; Set Mix Factor large plunger extruder
+; M164 S0		 ; Finalize mix
 
 G0 F1800 X75.0 Y88.0 Z0 ; move to starting position
 M83 					; Relative extrustion

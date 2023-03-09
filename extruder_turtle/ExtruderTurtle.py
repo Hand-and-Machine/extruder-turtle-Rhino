@@ -229,6 +229,7 @@ class ExtruderTurtle:
     def get_resolution(self):
         return self.resolution
 
+    # density must be in g/ml
     def set_density(self, density):
         self.density = density
 
@@ -610,7 +611,6 @@ class ExtruderTurtle:
         #print("total distance of path in mm: " +str(round(total_distance,2)))
         return total_distance
 
-    # distance_multiplier = .717
     def volume_of_path(self, print_out=False, distance_multiplier = .54):
         total_distance = self.length_of_path()
         volume = total_distance*math.pi*(self.extrude_width/2)*(self.extrude_width/2)*self.extrude_rate*distance_multiplier
@@ -618,12 +618,11 @@ class ExtruderTurtle:
         if (print_out):
             #print("total volume of path in cubic mm: " +str(round(volume,2)))
             print("total volume of path in ml: " +str(round(volume/1000, 0)))
-            print("total mm on extruder: " +str(extruder_distance))
+            print("total mm on extruder: " +str(round(extruder_distance,0)))
             print("approximate time in minutes: " +str(round(total_distance/self.get_speed(), 0)))
         return extruder_distance, volume
 
     # density must be in g/ml
-    #  mass_multiplier = .879
     def mass_of_path(self, density=False, print_out=False, mass_multiplier = 1.0):
         if (density):
             self.density = density
@@ -633,6 +632,11 @@ class ExtruderTurtle:
         if (print_out):
             print("total mass of path in g: " +str(round(mass,2)))
         return extruder_distance, volume, mass
+
+    def get_print_time(self, print_out=False, distance_multiplier = .54):
+        total_distance = self.length_of_path()
+        time = round(total_distance/self.get_speed(),0)
+        return time
 
     def get_path(self):
         return get_lines(self)
