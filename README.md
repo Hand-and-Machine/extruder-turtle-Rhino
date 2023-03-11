@@ -2,6 +2,7 @@
 
 A Python package that uses the principles of 3D Turtle Geometry to generate GCODE. 
 To be used as a Grasshopper/Rhino library. Relies on Rhinoscript functionality. 
+Full library documentation: https://handandmachine.org/projects/extruder_turtle_rhino/
 Rhinoscript documentation: https://developer.rhino3d.com/api/RhinoScriptSyntax/
 
 ## Basic functionality
