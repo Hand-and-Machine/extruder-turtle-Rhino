@@ -24,22 +24,17 @@ GCODE file or 3D printer and these starting parameters:
     - `y=0` is the starting y-value
     - `z=0` is the starting z-value
     - `filename=False` the value of the file you need to write to. You must open a file with write access in Grasshopper/Rhino and then pass the name of this file to the setup function.
-    - `printer=False` the printer you are using. The library currently supports the following printers: Ender Creality 3D "ender", 3D Potter Super 10 "super", 3D Potter Micro 10 "micro", and Eazao Zero Printer "eazao".
+    - `printer=False` the printer you are using. The library currently supports the following printers: Ender Creality 3D "ender", 3D Potter Super 10 "super", 3D Potter Micro 10 "micro", and Eazao Zero "eazao".
 - To close the GCODE file and write the finalization sequence to the output file, use `t.finish()`. This cools down the bed, moves the extruder up and away from the print, etc.
 
 ### Turtle actions
 
-The basic built-in actions of the turtle:
+Some available actions for the turtle:
 
 - `t.forward(distance)` moves the turtle forward a distance of `distance`, extruding along the way and writing GCODE if the pen is down.
+- `t.lift(height)` lifts the turtle up by a distance `height`. Usually used to move to the next layer of the print.
 - `t.left(theta)` turns the turtle left by an angle `theta`. This is just an easier-to-remember alias for `t.yaw(theta)`.
 - `t.right(theta)` turns the turtle right by an angle `theta`. Alias for `t.yaw(-theta)`.
-- `t.pitch_up(theta)` tilts the turtle "upwards" in the direction where its eyes would point. Alias for `t.pitch(theta)`.
-- `t.pitch_down(theta)` tilts the turtle "downwards". Alias for `t.pitch(-theta)`.
-- `t.roll_left(theta)` rolls the turtle towards its left side. Alias for `t.roll(-theta).
-- `t.roll_right(theta)` rolls the turtle towards its right side. Alias for `t.roll(theta)`.
-- `t.lift(height)` lifts the turtle up by a distance `height`. Usually used to move to the next layer of the print.
-- `t.forward_lift(distance, height)` moves the turtle forward by a distance `distance` and up by a distance `height`, extruding along the way if the pen is down. Note that "up" here refers to the direction normal to the turtle's shell, not necessarily in the positive-z direction.
 - `t.penup()` lifts the pen up (extrusion will not occur until the pen is back down).
 - `t.pendown()` puts the pen down (extrusion will occur until the pen is lifted up again).
 
