@@ -2,7 +2,8 @@
 
 A Python package that uses the principles of 3D Turtle Geometry to generate GCODE. 
 To be used as a Grasshopper/Rhino library. Relies on Rhinoscript functionality. 
-Full library documentation: https://handandmachine.org/projects/extruder_turtle_rhino/
+This file covers only a subset of library funcitons. For
+full library documentation see: https://handandmachine.org/projects/extruder_turtle_rhino/
 Rhinoscript documentation: https://developer.rhino3d.com/api/RhinoScriptSyntax/
 
 ## Basic functionality
@@ -23,10 +24,7 @@ GCODE file or 3D printer and these starting parameters:
     - `y=0` is the starting y-value
     - `z=0` is the starting z-value
     - `filename=False` the value of the file you need to write to. You must open a file with write access in Grasshopper/Rhino and then pass the name of this file to the setup function.
-    - `printer=False` the printer you are using. The library currently supports the following printers: Ender Creality 3D "ender", 3D Potter Super 10 and 3D Potter Micro 10 "3D potter", and Eazao Clay Printer "eazao".
-    - `speed=1000` is the starting speed of the turtle/print head
-    - `hotend_temp=215` is the default temperature of the hotend
-    - `bed_temp=60` is the default temperature of the bed
+    - `printer=False` the printer you are using. The library currently supports the following printers: Ender Creality 3D "ender", 3D Potter Super 10 "super", 3D Potter Micro 10 "micro", and Eazao Zero Printer "eazao".
 - To close the GCODE file and write the finalization sequence to the output file, use `t.finish()`. This cools down the bed, moves the extruder up and away from the print, etc.
 
 ### Turtle actions
@@ -60,8 +58,9 @@ The following functions are used to generate geometry objects that you can manip
 
 - `t.get_lines()` returns the path traveled by the turtle as a list of lines.
 - `t.draw_turtle()` returns a triangular surface that shows the turtle's current location and orientation.
+- `t.draw_print_bed()` returns a surface that corresponds to the size of the printer's print bed.
 
 
 ## Example code
 
-TBD
+See the examples directory.
