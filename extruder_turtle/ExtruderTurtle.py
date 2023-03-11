@@ -338,11 +338,9 @@ class ExtruderTurtle:
 
     def penup(self):
         self.pen = False
-        #self.do(self.G1e.format(e=-3))
 
     def pen_up(self):
         self.pen = False
-        #self.do(self.G1e.format(e=-3))
 
     def pendown(self):
         self.pen = True
