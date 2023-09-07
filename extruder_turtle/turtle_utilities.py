@@ -100,7 +100,7 @@ def one_slice(shape,z,size,plane = False):
 		return curves[0]
 
 # slices a shape using layer_height
-def slice_with_turtle (t, shape, walls = 1, layer_height=False, spiral_up=False, bottom = False):
+def slice_with_turtle (t, shape, walls = 1, layer_height=False, spiral_up=False, bottom = False, start_layer=0, layers=10000):
 	if (layer_height==False or layer_height == 0):
 		layer_height = t.get_layer_height()
 	bb = rs.BoundingBox(shape)
@@ -111,11 +111,12 @@ def slice_with_turtle (t, shape, walls = 1, layer_height=False, spiral_up=False,
 	size = rs.Distance(bb[0], bb[6])*2 # size of slicing plane
 	point_bottom = (rs.CreatePoint(0,0,bb[0].Z))
 	point_top = (rs.CreatePoint(0,0,bb[4].Z))
-
+	
+	#slices
 	slices = rs.AddSrfContourCrvs(shape,(point_bottom,point_top),layer_height)
 
 	#follow slice curves with turtle
-	follow_slice_curves_with_turtle(t,slices,walls=walls,spiral_up=spiral_up, bottom=bottom)
+	#follow_slice_curves_with_turtle(t,slices,walls=walls,spiral_up=spiral_up, bottom=bottom, start_layer=start_layer, layers=10000)
 
 	return slices
 
@@ -278,7 +279,7 @@ def slice_with_turtle_even_layers (t, shape, walls = 1, layer_height=False, bott
 
 # given a list of curves that slice a shape (slices)
 # follow the curves with the turtle
-def follow_slice_curves_with_turtle(t,slices,walls=1, bottom = False, spiral_up=False, matrix = False):
+def follow_slice_curves_with_turtle(t,slices,walls=1, bottom = False, spiral_up=False, matrix = False, start_layer=0, layers=10000):
 	resolution = t.get_resolution()
 
 	if (bottom!=False):
@@ -291,9 +292,15 @@ def follow_slice_curves_with_turtle(t,slices,walls=1, bottom = False, spiral_up=
 	t.set_position(points[0].X, points[0].Y, points[0].Z)
 	z0 = points[0].Z
 
-	layers = len(slices)
+	if (layers==10000 or layers==False):
+		layers = len(slices)
+	else:
+		layers = layers+start_layer
+
+	print("layers: " +str(layers))
+
 	# generate paths for all layers
-	for i in range (0,layers):
+	for i in range (start_layer,layers):
 		if (matrix):
 			num_points = len(matrix)
 		else:
@@ -323,25 +330,39 @@ def follow_slice_curves_with_turtle(t,slices,walls=1, bottom = False, spiral_up=
 
 # given a list of curves that slice a shape (slices)
 # follow the curves with the turtle
-def follow_slice_curves_woven(t,slices, bottom = False, spiral_up=False, matrix = False, num_oscillations=False, amplitude = False):
+def follow_slice_curves_woven(t,slices, bottom=False, spiral_up=False, matrix = False, num_oscillations=False, amplitude = False, start_layer=0, layers=10000):
 	resolution = t.get_resolution()
 	initial_n_points = 25
+	# set parameters if not passed in
 	if (num_oscillations==False):
-		num_oscillations = 21
+		points = rs.DivideCurve (slices[20], initial_n_points)
+		ll = line_length(points)
+		num_oscillations = int(ll/resolution)/10
+		print("num_oscillations: " +str(num_oscillations))
 	if (amplitude==False):
-		amplitude=1
-	if (bottom!=False):
-		bottom_layers = bottom
-	else:
+		amplitude=1.0
+	if (bottom==False):
 		bottom_layers = 0
+	else:
+		bottom_layers = bottom*2
+		#print("printing a bottom")
 	
 	# find starting point
-	points = rs.DivideCurve (slices[0], initial_n_points)
+	points = rs.DivideCurve (slices[start_layer], initial_n_points)
 	t.penup()
-	t.set_position(points[0].X, points[0].Y, points[0].Z)
+	t.set_position(points[start_layer].X, points[start_layer].Y, points[start_layer].Z)
 	t.pendown()
-	z0 = points[0].Z
-	layers = len(slices)
+	z0 = points[start_layer].Z
+
+	if (layers==10000 or layers==False):
+		layers = len(slices)-1
+	else:
+		if (layers<10000):
+			layers = layers+start_layer
+		else:
+			layers = len(slices)-1
+
+	#print("layers in woven: " +str(layers) )
 
 	# create shape
 	# generate paths for all layers
@@ -350,7 +371,7 @@ def follow_slice_curves_woven(t,slices, bottom = False, spiral_up=False, matrix 
 	mass = 0
 	#t.set_tube_color(159, 102, 119)
 	#t.set_tube_color(180, 43, 97)
-	for i in range (0,layers):
+	for i in range (start_layer,layers):
 		if (matrix):
 			num_points = len(matrix)
 		else:
@@ -366,25 +387,34 @@ def follow_slice_curves_woven(t,slices, bottom = False, spiral_up=False, matrix 
 		if (num_oscillations%2==0):
 			num_oscillations = num_oscillations+1
 
-		#print("num_oscillations: " +str(num_oscillations))
 
 		if (i%2==0):
 			theta_offset = 0
 		else:
 			theta_offset = 180
 
+		if (i==bottom_layers):
+			if (t.get_printer()=="micro"):
+				print("cm on tube for bottom: " + str(t.get_volume(print_out=False)[0]))
+			else:
+				print("mm on tube for bottom: " + str(t.get_volume(print_out=False)[0]))
+
 		#main wall layers
 		if (spiral_up and i<layers-1 and i>bottom_layers):
 			points_next = rs.DivideCurve (slices[i+1], num_points)
-			z_inc = (points_next[0].Z+z0-points[0].Z)/num_points
+			z_inc = (points_next[0].Z-points[0].Z)/num_points
+			if (z_inc<0 and abs(z_inc)>.5):
+				print("PROBLEM!!! z_inc < 0: " +str(z_inc))
+				print("at layer: " +str(i))
 			follow_closed_line_weave(t,points=points, num_oscillations=num_oscillations, amplitude = amplitude, z_inc = z_inc, theta_offset=theta_offset)
 		# bottom layers
 		else:
 			follow_closed_line_weave(t,points=points, num_oscillations=num_oscillations, amplitude = amplitude, theta_offset=theta_offset)
 
-		if (i < bottom_layers):
+		if (i < bottom_layers and i%2==0):
 			spiral_bottom(t,slices[i],walls=1) 
-		if (spiral_up==False or i<bottom_layers):
+			t.lift(t.get_layer_height())
+		if (spiral_up==False or (i<bottom_layers and i%2==1)):
 			t.lift(t.get_layer_height())
 		if (i==bottom_layers or i==layers-2):
 			t.lift(t.get_layer_height()/2)
@@ -418,9 +448,9 @@ def follow_slice_curves_woven_data(t,slices, bottom = False, spiral_up=False, ma
 	layers_per_week = len(slices)/50.0
 	#print("layers per week: " +str(layers_per_week))
 
-	months = 		['october', 'september','august','july','june','may',			'april','march','february','january','december','november' ]
-	months_layer = 	[]
-	months_color = 	[yellow, 	yellow,		orange,  red, orange, yellow, 	green, green, blue,blue, green, green  ]
+	months =        ['october', 'september','august','july','june','may',           'april','march','february','january','december','november' ]
+	months_layer =  []
+	months_color =  [yellow,    yellow,     orange,  red, orange, yellow,   green, green, blue,blue, green, green  ]
 	weeks_per_month = [31/7.0, 30/7.0, 31/7.0, 31/7.0, 30/7.0, 31/7.0, 30/7.0, 31/7.0, 28/7.0, 31/7.0, 31/7.0, 30/7.0]
 
 	current_color = white
@@ -471,7 +501,7 @@ def follow_slice_curves_woven_data(t,slices, bottom = False, spiral_up=False, ma
 		#main wall layers
 		if (spiral_up and i<layers-1 and i>bottom_layers):
 			points_next = rs.DivideCurve (slices[i+1], num_points)
-			z_inc = (points_next[0].Z+z0-points[0].Z)/num_points
+			z_inc = float(points_next[0].Z-points[0].Z)/num_points
 			follow_closed_line_weave(t,points=points, num_oscillations=num_oscillations, amplitude = amplitude, z_inc = z_inc, theta_offset=theta_offset)
 		# bottom layers
 		else:
@@ -481,7 +511,7 @@ def follow_slice_curves_woven_data(t,slices, bottom = False, spiral_up=False, ma
 			t.lift(t.get_layer_height())
 
 		if (i==bottom_layers or i==layers-2):
-			t.lift(t.get_layer_height()/2)
+			t.lift(t.get_layer_height()/2.0)
 
 
 def follow_closed_line_interior(t,curve,number=1,ignore_Z=False):
@@ -640,7 +670,7 @@ def spiral_bottom(t,curve,walls=1):
 			curve_center = curve_center_previous
 
 		o = rs.OffsetCurve(curve,curve_center,t.get_extrude_width())
-		if (area):	
+		if (area):  
 			previous_area = area
 		else:
 			print("Couldn't get an area, using previous.")
@@ -1395,11 +1425,34 @@ def secondWallAddPointXYR(t,t2,points):
 	t2.left(90)
 	return rs.CreatePoint(x1,y1,z1)
 
+
+def non_centered_poly_holes(t, diameter, steps=100, spiral_up=True):
+	position = t.get_position()
+
+	z_inc = t.get_layer_height()/steps
+	
+	if (t.write_gcode):
+		t.write_gcode_comment("starting polygon")
+		
+	circumference = diameter * math.pi
+	c_inc = circumference/steps
+	dtheta = 360.0/steps
+	t.right(dtheta/2)
+	for i in range (steps):
+		t.forward_lift(c_inc, z_inc)
+		t.right(dtheta)
+		if (i>=10 and i<50):
+			t.penup()
+		else:
+			t.pendown()
+	t.left(dtheta/2)
+
 #creates a circle or polygon with the edge begining at the turtle's location
-def non_centered_poly(t, diameter, steps=360, walls = 1, spiral_up=False):
+def non_centered_poly(t, diameter, steps=100, walls = 1, spiral_up=False):
 	position = t.get_position()
 	initial_angle = t.get_yaw()
 	steps = adjust_circle_steps(diameter, steps, t.get_resolution(),t.get_layer_height())
+	#print("steps: " +str(steps))
 
 	if (spiral_up):
 		z_inc = t.get_layer_height()/steps
