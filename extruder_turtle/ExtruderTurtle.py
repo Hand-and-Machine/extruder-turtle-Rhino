@@ -939,13 +939,3 @@ class ExtruderTurtle:
 		return tube_shapes, colors, text
 
 
-t = ExtruderTurtle()
-
-for i in range (layers):
-  for j in range (360):
-    t.forward(1)
-    t.right(1)
-  t.lift(layer_height)
-
-
-
