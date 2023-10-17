@@ -222,6 +222,13 @@ class ExtruderTurtle:
 	def name(self, filename):
 		self.out_filename = filename
 
+	def get_file(self):
+		if(self.out_file):
+			print(self.out_file)
+			return True
+		else:
+			return False
+
 	def write_gcode_comment(self, comment):
 		if (self.out_file):
 			self.out_file.write("; " + comment + "\n")
@@ -930,4 +937,15 @@ class ExtruderTurtle:
 			b0 = b
 			m0 = m
 		return tube_shapes, colors, text
+
+
+t = ExtruderTurtle()
+
+for i in range (layers):
+  for j in range (360):
+    t.forward(1)
+    t.right(1)
+  t.lift(layer_height)
+
+
 
