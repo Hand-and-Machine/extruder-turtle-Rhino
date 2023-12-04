@@ -65,8 +65,7 @@ class ExtruderTurtle:
 					y=0,
 					z=0,
 					filename=False,
-					printer=False
-					):
+					printer=False):
 		
 		if (filename):
 			self.out_filename = filename
@@ -78,7 +77,7 @@ class ExtruderTurtle:
 		if (printer):
 			self.set_printer(printer)
 		if (filename and printer):
-			self.write_header_comments()
+			self.write_header_comments(parameters=False)
 		else:
 			print("Warning can't write file. No printer selected or filename given.")
 			
@@ -179,6 +178,7 @@ class ExtruderTurtle:
 		print("layer height: " +str(self.layer_height))
 		print("extrude rate: " +str(self.extrude_rate))
 		print("extrude width: " +str(self.extrude_width))
+		self.write_printer_parameters_to_file()
 
 	def print_printer_information(self):
 		print("printer: " +str(self.printer))
@@ -187,8 +187,9 @@ class ExtruderTurtle:
 		print("layer height: " +str(self.layer_height))
 		print("extrude rate: " +str(self.extrude_rate))
 		print("extrude width: " +str(self.extrude_width))
+		self.write_printer_parameters_to_file()
 
-	def write_header_comments(self):
+	def write_header_comments(self, parameters=True):
 		if self.write_gcode:
 			self.out_file = open(self.out_filename, 'w+')
 
@@ -201,14 +202,15 @@ class ExtruderTurtle:
 			self.out_file.write("; **** Hand and Machine Lab, UNM, 2021-present ****\n")
 			self.out_file.write("; *************************************************\n")
 			self.out_file.write("; *************************************************\n")
-			self.out_file.write("; ********** Default printer parameters ***********\n")
-			self.out_file.write("; Printer: " + self.printer + "\n")
-			self.out_file.write("; Nozzle size: " + str(self.nozzle) + "\n")
-			self.out_file.write("; Extrude width: " + str(self.extrude_width) + "\n")
-			self.out_file.write("; Layer height: " + str(self.layer_height) + "\n")
-			self.out_file.write("; Extrude rate: " + str(self.extrude_rate) + "\n")
-			self.out_file.write("; Speed: " + str(self.speed) + "\n")
-			self.out_file.write("; Mix Factor: " + str(self.mix_factor) + "\n")
+			if (parameters):
+				self.out_file.write("; ********** Default printer parameters ***********\n")
+				self.out_file.write("; Printer: " + self.printer + "\n")
+				self.out_file.write("; Nozzle size: " + str(self.nozzle) + "\n")
+				self.out_file.write("; Extrude width: " + str(self.extrude_width) + "\n")
+				self.out_file.write("; Layer height: " + str(self.layer_height) + "\n")
+				self.out_file.write("; Extrude rate: " + str(self.extrude_rate) + "\n")
+				self.out_file.write("; Speed: " + str(self.speed) + "\n")
+				self.out_file.write("; Mix Factor: " + str(self.mix_factor) + "\n")
 
 			# write printer initialization sequence 
 			self.initseq_file = open(self.initseq_filename, 'r')
@@ -217,7 +219,6 @@ class ExtruderTurtle:
 			self.set_speed(self.speed)
 			self.out_file.write("; ********** End printer initialization ***********\n")
 			self.out_file.write("; *************************************************\n\n")
-			self.out_file.write("; *************** Begin print *********************\n")
 
 	def name(self, filename):
 		self.out_filename = filename
@@ -233,6 +234,18 @@ class ExtruderTurtle:
 		if (self.out_file):
 			self.out_file.write("; " + comment + "\n")
 
+	def write_print_parameters_to_file(self):
+		if (self.out_file):
+			print("writing parameters to file")
+			self.out_file.write("; ***************** Print parameters **************\n")
+			self.out_file.write("; Nozzle size: " + str(self.nozzle) + "\n")
+			self.out_file.write("; Extrude width: " + str(self.extrude_width) + "\n")
+			self.out_file.write("; Layer height: " + str(self.layer_height) + "\n")
+			self.out_file.write("; Extrude rate: " + str(self.extrude_rate) + "\n")
+			self.out_file.write("; Speed: " + str(self.speed) + "\n")
+			self.out_file.write("; Mix Factor: " + str(self.mix_factor) + "\n")
+			self.out_file.write("; *************************************************\n\n")
+
 	def finish(self):
 		if self.write_gcode:
 			self.finalseq_file = open(self.finalseq_filename, 'r')
@@ -244,18 +257,22 @@ class ExtruderTurtle:
 		if self.write_gcode:
 			self.out_file.write(cmd + "\n")
 
-	def set_extrude_rate(self, extrude_rate):
-		self.write_gcode_comment("Changed extrude rate to: " +str(extrude_rate))
-		self.write_gcode_comment("*************************************************************")
+	def set_extrude_rate(self, extrude_rate, comment=True):
 		self.extrude_rate = extrude_rate
 		print("extrude rate set to: " +str(extrude_rate))
+		if (comment):
+			self.write_gcode_comment("Changed extrude rate to: " +str(extrude_rate))
+			self.out_file.write("; *************************************************\n\n")
 
 	def get_extrude_rate(self):
 		return self.extrude_rate
 
-	def set_extrude_width(self, extrude_width):
+	def set_extrude_width(self, extrude_width, comment=True):
 		self.extrude_width = extrude_width
 		print("extrude width set to: " +str(extrude_width))
+		if (comment):
+			self.write_gcode_comment("Changed extrude width to: " +str(extrude_width))
+			self.out_file.write("; *************************************************\n\n")
 
 	def get_extrude_width(self):
 		return self.extrude_width
@@ -273,23 +290,29 @@ class ExtruderTurtle:
 	def get_density(self):
 		return self.density
 
-	def set_nozzle_size(self, nozzle_size):
+	def set_nozzle_size(self, nozzle_size, comment=True):
 		self.nozzle = nozzle_size
 		self.extrude_width = nozzle_size*1.15
 		self.layer_height = nozzle_size*.8
 		self.extrude_rate = nozzle_size
 		print("nozzle size set to: " +str(nozzle_size))
+		if (comment):
+			self.out_file.write("Set nozzle size to: " +str(nozzle_size))
+			self.out_file.write("; *************************************************\n\n")
 		#print("extrude width set to: " +str(self.extrude_width))
 		#print("extrude rate set to: " +str(self.extrude_rate))
 		#print("layer height set to: " +str(self.layer_height))
 
-	def set_nozzle(self, nozzle_size):
+	def set_nozzle(self, nozzle_size, comment=True):
 		self.set_nozzle_size(nozzle_size)
+		if (comment):
+			self.out_file.write("Set nozzle size to: " +str(nozzle_size))
+			self.out_file.write("; *************************************************\n\n")
 
 	def get_nozzle_size(self):
 		return self.nozzle
 
-	def set_mix_factor(self, mix_factor):
+	def set_mix_factor(self, mix_factor, comment=True):
 		if (self.out_file==False):
 			print("Can't set material. No gcode file.")
 			return
@@ -298,12 +321,13 @@ class ExtruderTurtle:
 			return
 
 		self.mix_factor = mix_factor
-		print("Set mix factor to: " +str(round(self.mix_factor,3)))
-		self.out_file.write("; *************************************************\n")
-		self.out_file.write("M163 S0 P" +str(round(mix_factor,3)) + " ; Set Mix Factor small auger extruder\n")
-		self.out_file.write("M163 S1 P" +str(round(1.0-mix_factor,3)) + " ; Set Mix Factor large plunger extruder\n")
-		self.out_file.write("M164 S0 ; Finalize mix\n")
-		self.out_file.write("; *************************************************\n\n")
+		print("mix factor set to: " +str(round(self.mix_factor,3)))
+		if (comment):
+			self.out_file.write("; *************************************************\n")
+			self.out_file.write("M163 S0 P" +str(round(mix_factor,3)) + " ; Set Mix Factor small auger extruder\n")
+			self.out_file.write("M163 S1 P" +str(round(1.0-mix_factor,3)) + " ; Set Mix Factor large plunger extruder\n")
+			self.out_file.write("M164 S0 ; Finalize mix\n")
+			self.out_file.write("; *************************************************\n\n")
 
 	def get_mix_factor(self):
 		return round(self.mix_factor,3)
@@ -315,7 +339,11 @@ class ExtruderTurtle:
 		self.out_file.write("; *************************************************\n")
 		if (material=="metal" or material=="Metal"):
 			self.write_gcode_comment("Material set to metal")
-			self.set_mix_factor(.93)
+			self.set_nozzle_size(.6, comment=False)
+			self.set_mix_factor(.97, comment=False)
+			self.set_layer_height(.5, comment=False)
+			self.set_extrude_rate(.25, comment=False)
+			self.set_extrude_width(0.75, comment=False)
 		elif (material=="clay" or material=="Clay"):
 			self.write_gcode_comment("Material set to clay")
 			self.set_mix_factor(.90)
@@ -329,9 +357,12 @@ class ExtruderTurtle:
 	def get_nozzle(self):
 		return self.nozzle
 
-	def set_layer_height(self, layer_height):
+	def set_layer_height(self, layer_height, comment=True):
 		self.layer_height = layer_height
-		print("new layer height set: " +str(round(layer_height,4)))
+		print("layer height set to: " +str(round(layer_height,4)))
+		if (comment):
+			self.write_gcode_comment("Layer height set to: " +str(round(layer_height,4)))
+			self.out_file.write("; *************************************************\n")
 
 	def get_layer_height(self):
 		return self.layer_height
