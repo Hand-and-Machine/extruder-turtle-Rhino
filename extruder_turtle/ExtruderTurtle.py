@@ -119,10 +119,23 @@ class ExtruderTurtle:
 			self.extrude_rate = 2.5 #mm extruded/mm
 			self.speed = 1200 #mm/minute 
 			self.printer = "micro"
-			self.resolution = 1.0
+			self.resolution = .1
 			self.x_size = 280
 			self.y_size = 265
 			self.print_head_size = 77 # 3 inches
+		elif (printer=="matrix" or printer=="Matrix"):
+			if(self.out_file):
+				self.initseq_filename = os.path.join(__location__, "data/initseqMatrix.gcode")
+			self.nozzle = 1.5
+			self.extrude_width = 2.25
+			self.layer_height = 1.0
+			self.extrude_rate = 1.0 #mm extruded/mm
+			self.speed = 1000 #mm/minute = 16.6 mm/second
+			self.printer = "matrix"
+			self.resolution = .5
+			self.x_size = 400
+			self.y_size = 400
+			self.print_head_size = 64 # 2.5 inches
 		elif (printer=="Eazao" or printer=="eazao"):
 			if(self.out_file):
 				self.initseq_filename = os.path.join(__location__, "data/initseqEazao.gcode")
@@ -169,6 +182,8 @@ class ExtruderTurtle:
 			self.initseq_filename = os.path.join(__location__, "data/initseq3DPotter.gcode")
 		elif(self.printer=="eazao"):
 			self.initseq_filename = os.path.join(__location__, "data/initseqEazao.gcode")
+		elif(self.printer=="matrix"):
+			self.initseq_filename = os.path.join(__location__, "data/initseqMatrix.gcode")
 		self.write_header_comments()
 
 	def print_parameters(self):
@@ -187,7 +202,7 @@ class ExtruderTurtle:
 		print("layer height: " +str(self.layer_height))
 		print("extrude rate: " +str(self.extrude_rate))
 		print("extrude width: " +str(self.extrude_width))
-		self.write_printer_parameters_to_file()
+		self.write_print_parameters_to_file()
 
 	def write_header_comments(self, parameters=True):
 		if self.write_gcode:
@@ -322,12 +337,11 @@ class ExtruderTurtle:
 
 		self.mix_factor = mix_factor
 		print("mix factor set to: " +str(round(self.mix_factor,3)))
-		if (comment):
-			self.out_file.write("; *************************************************\n")
-			self.out_file.write("M163 S0 P" +str(round(mix_factor,3)) + " ; Set Mix Factor small auger extruder\n")
-			self.out_file.write("M163 S1 P" +str(round(1.0-mix_factor,3)) + " ; Set Mix Factor large plunger extruder\n")
-			self.out_file.write("M164 S0 ; Finalize mix\n")
-			self.out_file.write("; *************************************************\n\n")
+		self.out_file.write("; *************************************************\n")
+		self.out_file.write("M163 S0 P" +str(round(mix_factor,3)) + " ; Set Mix Factor small auger extruder\n")
+		self.out_file.write("M163 S1 P" +str(round(1.0-mix_factor,3)) + " ; Set Mix Factor large plunger extruder\n")
+		self.out_file.write("M164 S0 ; Finalize mix\n")
+		self.out_file.write("; *************************************************\n\n")
 
 	def get_mix_factor(self):
 		return round(self.mix_factor,3)
@@ -340,10 +354,11 @@ class ExtruderTurtle:
 		if (material=="metal" or material=="Metal"):
 			self.write_gcode_comment("Material set to metal")
 			self.set_nozzle_size(.6, comment=False)
-			self.set_mix_factor(.97, comment=False)
+			self.set_mix_factor(.95, comment=False)
 			self.set_layer_height(.5, comment=False)
 			self.set_extrude_rate(.25, comment=False)
 			self.set_extrude_width(0.75, comment=False)
+			self.write_print_parameters_to_file()
 		elif (material=="clay" or material=="Clay"):
 			self.write_gcode_comment("Material set to clay")
 			self.set_mix_factor(.90)
@@ -660,6 +675,13 @@ class ExtruderTurtle:
 	def getZ(self):
 		return self.z
 
+	def get_vector(self):
+		x, y, z = self.forward_vec
+		return rs.CreatePoint(x,y,z)
+
+	def get_heading(self):
+		self.get_yaw()
+
 	def get_yaw(self):
 		x, y, z = self.forward_vec
 		net_yaw = math.atan2(y, x)
@@ -731,7 +753,7 @@ class ExtruderTurtle:
 	def volume_of_path(self, print_out=True, distance_multiplier = .55):
 		total_distance = self.length_of_path()
 		# volume in cubic cm ; ml
-		if (self.printer == "eazao"):
+		if (self.printer == "eazao" or self.printer == "matrix"):
 			distance_multiplier = .55
 			distance_multiplier = .86
 		elif (self.printer == "micro"):
@@ -745,7 +767,7 @@ class ExtruderTurtle:
 			#print("total volume of path in cubic mm: " +str(round(volume,2)))
 			print("total volume of path in ml: " +str(round(volume/1000, 0)))
 			print("approximate time in minutes: " +str(round(total_distance/self.get_speed(), 0)))
-		if (self.printer=="eazao"):
+		if (self.printer=="eazao" or self.printer=="matrix"):
 			extruder_distance = volume/1000/2 
 		if (self.printer=="super"):
 			extruder_distance = (volume/7088.0)
@@ -757,7 +779,7 @@ class ExtruderTurtle:
 		if (print_out):
 			if (self.printer=="micro" or self.printer=="super"):
 				print("total cm on extruder: " +str(round(extruder_distance,1)))
-			elif(self.printer=="eazao"):
+			elif(self.printer=="eazao" or self.printer=="matrix"):
 				print("total mm on extruder: " +str(round(extruder_distance,0)))
 		return round(extruder_distance,1), volume
 

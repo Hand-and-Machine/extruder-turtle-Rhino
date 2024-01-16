@@ -5,6 +5,8 @@ import ExtruderTurtle as e
 import operator as op
 import math
 import random
+import extruder_turtle
+from extruder_turtle import *
 
 def translate(g,x,y,z):
 	translation = geom.Transform.Translation(x,y,z)
@@ -1100,74 +1102,25 @@ def follow_closed_line_weave(t,points=False, curve=False, num_oscillations=25.0,
 
 	return t2
 
-def pattern_cylinder_1D (t,diameter, height, array1D=False, walls= 1, offset = 0):
-	layers = int(height/t.get_layer_height())
-	circumference = diameter*math.pi
-	steps = 360
-	c_inc = circumference/steps
-	dtheta = steps/360
-
-	if (array1D):
-		steps_per_array_entry = steps/len(array1D)
-	else:
-		steps_per_array_entry = circumference/3
-	if (steps_per_array_entry==0):
-		steps_per_array_entry = 1
-
-	if (offset>0):
-		offset_steps = int(offset/c_inc)
-		t.penup()
-		for o in range (0,offset_steps):
-			t.forward(c_inc)
-			t.right(dtheta)
-		t.pendown()
-
-	for l in range (layers):
-		ai = 0
-		for i in range (steps):
-			if (i%steps_per_array_entry==0):
-				if (array1D and array1D[ai] == 1):
-					t.penup()
-				else:
-					t.pendown()
-				ai = ai+1
-			t.forward(c_inc)
-			t.right(dtheta)
-		# use recursion to generate another wall inside this one
-		if (walls>1):
-			t.penup()
-			t.right(90)
-			t.forward(t.get_extrude_width())
-			t.left(90)
-			t.pendown()
-			wall_height = t.get_layer_height()
-			pattern_cylinder_1D(t,diameter-t.get_extrude_width()*2,wall_height,array1D,walls-1)
-			t.penup()
-			t.left(90)
-			t.forward(t.get_extrude_width())
-			t.right(90)
-			t.pendown()
-		
-		# lift only once per layer
-		# not for every wall in layer!
-		if (walls ==1):
-			t.penup()
-			t.lift(t.get_layer_height())
-			t.pendown()
-
-
 def pattern_cylinder(t, b_diameter, height, t_diameter=False, array=False, pattern_amplitude = False, pattern_spacing = 0, bottom_layers=3, oscillations = False, spiral_up = True, walls=1):
 	base_amplitude = 1.0
+	every_other_layer = True # change to false to show pattern on every layer
+	toggle = True # variable to select every_other_layer
+	if (every_other_layer==True):
+		print("Generating pattern for every other layer")
+	
 	if (pattern_amplitude == False):
-		pattern_amplitude = 3.0 #base_amplitude+1.0
+		pattern_amplitude = 2.0 #base_amplitude+1.0
 	if (t_diameter == False):
 		t_diameter = b_diameter
+	
 	layers = int(height/t.get_layer_height())
-	top_layers = 6 #number of layers at the top with no pattern
+	top_layers = 0 #number of layers at the top with no pattern
+	extra_bottom_layers = 0 #number of extra layers at the bottom with no pattern
 	diameter = b_diameter
 	diameter_inc = float(t_diameter - b_diameter)/layers
-
 	circumference = diameter*math.pi
+
 	if (array):
 		pattern_width = len(array)
 		pattern_height = len(array[0])
@@ -1176,47 +1129,55 @@ def pattern_cylinder(t, b_diameter, height, t_diameter=False, array=False, patte
 			pattern_width = oscillations+1
 		else:
 			pattern_width = circumference/4
+
 	pattern_steps = pattern_width
 	if (oscillations or array):
 		nOscillations = int(pattern_steps)-1
 		distance_per_oscillation = circumference/nOscillations
-		steps_per_oscillation = 2
+		steps_per_oscillation = 10 #determines resolution of curve
 		c_inc = distance_per_oscillation/steps_per_oscillation
-		#print("distance_per_oscillation: " +str(distance_per_oscillation))
 	else:
 	  nOscillations = 0.0
+	  distance_per_oscillation = circumference
 	  c_inc = circumference/100
 	  steps_per_oscillation = 1
 
-	#print("number of oscillations: " +str(nOscillations))
-
-	 
 	steps = int(circumference/c_inc)
+	dtheta = 360.0/steps
+	theta_per_oscillation = dtheta*steps_per_oscillation
+	theta_offset = theta_per_oscillation/2 #used to offset every other layer of weave
+
+	print("number of oscillations: " +str(nOscillations))
+	print("number of steps: " +str(steps))
+	print("degrees per step (dtheta): " +str(dtheta))
+	print("degrees per oscillation: " +str(steps_per_oscillation*dtheta))
+
 
 	if (spiral_up): 
 		z_inc = t.get_layer_height()/steps
 	else:
 		z_inc = 0
 
-	dtheta = 360.0/steps
 	b = diameter/2
 	x0 = t.getX()
 	y0 = t.getY()
 	z0 = t.getZ()
 	z = z0
-	theta_offset = 0
 	axy = base_amplitude
-	theta0 = 0
 
 	#pattern access variables
 	xp = 0
 	yp = 0
 
+	# Rhino visualization variable
+	visualization = True
+	vis_lines = []
 
 	################################################
 	# LAYER LOOP
 	################################################
 	for l in range (layers):
+		axy=base_amplitude # reset pattern amplitude for each layer
 		t.write_gcode_comment("layer: " +str(l))
 
 		# create bottom layers if relevant
@@ -1231,173 +1192,110 @@ def pattern_cylinder(t, b_diameter, height, t_diameter=False, array=False, patte
 		# if (l== bottom_layers):
 		#   print("BOTTOM PRINT INFO")
 		#   t.volume_of_path()
-		else:
-			t.pendown()
 
 		# reset x pattern variable for each layer
 		xp = 0
-		# generate theta offset for weaving oscillations
-		# every other layer is offset
-		if (l%2==0):
-			theta_offset = 180
-			x0 = t.getX()
-			# this is a problematic if statement. Will cause problems later!
-			if (x0==0):
-				theta0 = 0
-				# could also be theta0 = 90 or theta0 = 270
-			elif (x0 < 0):
-				theta0 = math.degrees(math.atan(y0/x0))+180
-			else:
-				theta0 = math.degrees(math.atan(y0/x0))
-			steps_offset = 1
-		else:
-			theta_offset = 0
-			theta0 = 0
-			steps_offset = 2
 
 		################################################
 		# MAIN PATTERN LOOP
 		# generate steps around circumference
 		################################################
-		for s in range(1,steps+steps_offset):
-			# generate pattern for every other layer
+		for s in range(0,steps):
+			# skip bottom most layer
+			if (l<1):
+				break
+			# generate pattern
 			# top top_layers have no pattern
 			# bottom layers have no pattern
-			if (s>1):
-				t.pendown()
-			if (l<layers-top_layers-3 and l>=bottom_layers and l%2==0):
-				if (s%steps_per_oscillation==0):
-					if (array and xp<len(array) and yp<len(array) and array[xp][yp]==1):
-						t.set_color(200,0,0)
-						axy = pattern_amplitude
-						if (pattern_amplitude==-1):
-							t.penup()
-						elif(s>1):
-							t.pendown()
-					else:
-						t.set_color(0,100,200)
-						if (s>1):
-							t.pendown()
+			if (l<layers-top_layers and l>=bottom_layers-1+extra_bottom_layers and s%steps_per_oscillation==0):
+				if (array and xp<len(array) and yp<len(array[0]) and array[xp][yp]==1):
+					axy = pattern_amplitude
+					# adjust if every other layer mode is selected
+					# turn off pattern for every other layer
+					if (every_other_layer and toggle and l>bottom_layers+extra_bottom_layers):
 						axy = base_amplitude
-					xp = xp+1
-
-			# comment out elif statement to skip alternate layers
-			# keep statement in to show pattern on all layers
-			elif (l<layers-top_layers-3 and l>=bottom_layers and s%steps_per_oscillation==0):
-					if (array and xp<len(array) and yp<len(array) and array[xp][yp]==1):
-						axy = pattern_amplitude
-					else:
-						axy = base_amplitude
-					xp = xp+1
+				else:
+					axy = base_amplitude
 			else:
 				axy = base_amplitude
 
 			# calculate and move to next position
-			theta = theta0+dtheta*s
-			if (theta_offset==0):
-				r= b+axy*math.cos(nOscillations/2*math.radians(theta))
+			# offset "weave" for every other layer
+			if (l%2==0):
+				r= b+axy*math.cos(nOscillations*math.radians(dtheta*s+theta_offset))
 			else:
-				r= b+axy*math.cos(nOscillations/2*math.radians(theta+theta_offset))
-			x = r*math.cos(math.radians(theta))
-			y = r*math.sin(math.radians(theta))
+				r= b+axy*math.cos(nOscillations*math.radians(dtheta*s))
 
-			# bottom layers and last layer are flat, no spiraling up in z
-			if (z_inc != 0 and l < layers-1 and l>bottom_layers):
+			x = r*math.cos(math.radians(dtheta*s))
+			y = r*math.sin(math.radians(dtheta*s))
+
+			# spiral up only if this is not the bottom or top layer
+			if (z_inc != 0 and l>bottom_layers and l < layers-1):
 				z = z + z_inc
-			if (z_inc != 0 and l >= layers-1):
-				z = z + z_inc/3
 
 			t.set_position(x,y,z)
+
+			#if the pen is up, execute a pendown command
+			if (not(t.get_pen())): 
+				t.pendown() 
+
+			# if (axy == pattern_amplitude):
+			# 	print("pattern at: " +str(xp)+", "+str(yp))
+			# 	print("r: "+str(r-b))
+
+			#generate Rhino visualization
+			if (r-b+t.get_resolution()>=pattern_amplitude and visualization==True):
+				# generate a cube at turtle's location
+				# print("vis at: " +str(xp)+", "+str(yp))
+				# print("")
+				t2 = ExtruderTurtle()
+				t2.set_position_point(t.get_position())
+				t2.set_heading(dtheta*s)
+				t2.pitch(90)
+				points = []
+				points.append(t2.get_position())
+				for i in range(2):
+					t2.forward(t.get_layer_height()*1.25)
+					t2.right(90)
+					points.append(t2.get_position())
+					t2.forward(distance_per_oscillation/1.15)
+					t2.right(90)
+					points.append(t2.get_position())
+				square = rs.AddPolyline(points)
+				square=rs.AddPlanarSrf(square)[0]
+				vis_lines.append(square)
+
+			# update x pattern variable
+			if (s%steps_per_oscillation==0):
+				xp = xp+1
+
+		##########################################
+		# LAYER LOOP LEVEL
+		##########################################
+
+		# if there is no spiraling at all, step up
+		if (z_inc == 0 or l<=bottom_layers):
+			z = z + t.get_layer_height()
 
 		# increment diameter if relevant
 		diameter = diameter+diameter_inc
 		b = diameter/2
 
 		# update pattern yp (vertical) variable
-		if (l%2==0 and l<layers-top_layers and l>bottom_layers):
+		if (l>bottom_layers-1+extra_bottom_layers):
 			yp = yp+1
+		# skip every other layer if that mode is selected
+		if (every_other_layer==True and l>bottom_layers+extra_bottom_layers):
+			if (toggle==True):
+				yp = yp-1
+			toggle = not(toggle)
 
-
-		# if you are not spiraling up, step up to the next layer
-		if (z_inc == 0 or l < bottom_layers):
-			#print("printing bottom layer z up")
-			t.penup()
-			t.extrude(-1)
-			z = z + t.get_layer_height()
-			if (l < bottom_layers-1):   #add a little extra height for bottom layers
-				z = z + t.get_layer_height()*.4
-			if (l >= layers-1): #subtract a little height for top layer
-				z = z - t.get_layer_height()/4
-			t.set_position(z=z)
-
-		# penup and lift to transition to next bottom layer
-		if (l<bottom_layers-1):
+		# penup and lift to transition to next bottom layer for auger printers only
+		if ((t.get_printer()=="eazao" or t.get_printer()=="matrix") and l<bottom_layers-1):
 			t.penup()
 			t.extrude(-1)
 			t.lift(t.get_layer_height()*3) # prevent dragging across print during travel
-	
-
-# innner ring function for pattern cylinder
-def inner_ring(t, l, walls=2):
-		# add inner ring if relevant
-		if (walls > 1 and l>bottom_layers and l<layers-top_layers):
-			b_offset = 13.0
-			t_offset = t.get_extrude_width()
-			offset_inc = (t_offset-b_offset)/(layers-10)
-			offset = b_offset+offset_inc*l
-			diameter_inner = diameter-offset
-			c_inc_inner = math.pi*diameter_inner/steps
-			t.set_position(x=diameter/2.0, y=0.0)
-			t.set_heading(0)
-
-			# connect inner and outer rings with angled lines (instead of straight ones)
-			# t_inner finds angular position based on steps_in variable
-			steps_in = 3
-			t_inner = e.ExtruderTurtle()
-			t_inner.set_position(x=diameter/2.0, y=0.0, z = t.getZ())
-			t_inner.set_heading(0)
-			t_inner.right(180.0)
-			t_inner.forward(offset/2)
-			t_inner.left(89)
-
-			for s in range(0,steps_in):
-				t_inner.forward(c_inc_inner)
-				t_inner.right(dtheta)
-			x_in = t_inner.getX()
-			y_in = t_inner.getY()
-			h_in = t_inner.get_yaw()
-
-			t_inner.set_position(x=diameter/2.0, y=0.0)
-
-			if (offset >=t.get_extrude_width()*5):
-				# provides some fill between inner and outer rings 
-				# to smooth shrinkage and cracking during firing
-				fill_points = []
-				diameter_fill = diameter-offset/2
-				c_inc_fill = math.pi*diameter_fill/steps
-				t_fill = e.ExtruderTurtle()
-				t_fill.set_position(x=diameter/2.0, y=0.0, z = t.getZ())
-				fill_points.append(t_fill.get_position())
-				t_fill.set_heading(0)
-				t_fill.right(180.0)
-				t_fill.forward(offset/4)
-				fill_points.append(t_fill.get_position())
-				t_fill.left(89)
-
-				for s in range(0,steps):
-					t_fill.forward(c_inc_fill)
-					t_fill.right(dtheta)
-					fill_points.append(t_fill.get_position())
-
-				follow_closed_line_weave(t,points=fill_points, num_oscillations=15, amplitude=offset/4-t.get_extrude_width())
-
-			t.set_position(x=x_in, y=y_in)
-			t.set_heading(yaw=h_in)
-			for s in range(steps_in,steps-steps_in):
-				t.forward(c_inc_inner)
-				t.right(dtheta)
-
-			t.set_position(x=diameter/2.0, y=0.0)
+	return vis_lines	
 
 
 # adjust the number of steps in a circle 
