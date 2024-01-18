@@ -45,6 +45,8 @@ class ExtruderTurtle:
 		self.speed = 0;
 		self.density = 0.0;
 		self.resolution = False;
+		self.nozzle_height = 25;
+		self.nozzle_width = 8;	#max width of nozzle at top, for TRAvel Slicer
 
 		# GCODE text formats
 		self.G1xyze = "G1 X{x} Y{y} Z{z} E{e}"
@@ -291,6 +293,18 @@ class ExtruderTurtle:
 
 	def get_extrude_width(self):
 		return self.extrude_width
+
+	def set_nozzle_height(self, nozzle_height):
+		self.nozzle_height = nozzle_height
+
+	def get_nozzle_height(self):
+		return self.nozzle_height
+
+	def set_nozzle_width(self, nozzle_width):
+		self.nozzle_width = nozzle_width
+
+	def get_nozzle_width(self):
+		return self.nozzle_width
 
 	def set_resolution(self, resolution):
 		self.resolution = resolution
