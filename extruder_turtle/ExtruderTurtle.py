@@ -45,8 +45,8 @@ class ExtruderTurtle:
 		self.speed = 0;
 		self.density = 0.0;
 		self.resolution = False;
-		self.nozzle_height = 25;
-		self.nozzle_width = 8;	#max width of nozzle at top, for TRAvel Slicer
+		self.nozzle_height = 15;
+		self.nozzle_width = 4;	#max width of nozzle at nozzle_height, for TRAvel Slicer
 
 		# GCODE text formats
 		self.G1xyze = "G1 X{x} Y{y} Z{z} E{e}"
@@ -56,6 +56,10 @@ class ExtruderTurtle:
 		self.G1e = "G1 E{e}"
 		self.G1f = "G1 F{f}"
 		self.G1z = "G1 Z{z}"
+		self.G0xyz = "G0 X{x} Y{y} Z{z}"
+		self.G0xy = "G0 X{x} Y{y}"
+		self.G0z = "G0 Z{z}"
+		self.G0f = "G0 F{f}"
 		self.G4p = "G4 P{p}"
 		self.M0 = "M0"
 		self.M104s = "M104 S{s}\nM109 S{s}"
@@ -151,6 +155,18 @@ class ExtruderTurtle:
 			self.x_size = 150
 			self.y_size = 150
 			self.print_head_size = 64 # 2.5 inches
+		if (printer=="civil"):
+			if(self.out_file):
+				self.initseq_filename = os.path.join(__location__, "data/initseqCivil.gcode") 
+			self.nozzle = 20.0
+			self.extrude_width = 10.0
+			self.layer_height = 10.0
+			self.extrude_rate = 10.0 #mm extruded/mm
+			self.speed = 1000 #mm/minute
+			self.printer = "civil"
+			self.resolution = 10.0
+			self.x_size = 2000
+			self.y_size = 2000
 		else:
 			print ("No printer set!! \nCheck the name of your printer and try again. \nWe support: super, micro, eazao, and ender")
 
@@ -418,7 +434,7 @@ class ExtruderTurtle:
 		else:
 			self.write_gcode_comment("hack pause")
 			self.set_speed(60) # mm/minute
-			self.lift(-ms/1000)
+			self.lift(-ms/1000.0)
 			self.set_speed(self.speed)
 
 	def pause_seconds(self, s):
@@ -428,7 +444,7 @@ class ExtruderTurtle:
 		else:
 			self.write_gcode_comment("hack pause")
 			self.set_speed(60) # mm/minute
-			self.lift(-s/1000) 
+			self.lift(-s/1000.0) 
 			self.set_speed(self.speed)
 
 	def pause_and_wait(self):
@@ -577,6 +593,7 @@ class ExtruderTurtle:
 				self.extrusion_history.append(de)
 				self.color_history.append(self.current_color)
 
+
 	def forward(self, distance):
 		extrusion = float(abs(distance) * self.extrude_rate)
 		dx = float(distance * self.forward_vec[0])
@@ -589,11 +606,23 @@ class ExtruderTurtle:
 		dy_w = round(dy,4) 
 		dz_w = round(dz,4) 
 		e_w = round(extrusion,3) 
+		if (dx_w==0 and dy_w==0 and dz_w==0):
+			# if this is an erroneous command, don't write it to file
+			return
 		self.record_move(dx, dy, dz, de=extrusion)
 		if self.pen:
-			self.do(self.G1xyze.format(x=dx_w, y=dy_w, z=dz_w, e=e_w))
+			if (dz_w==0.0):
+				# is there is no change in Z, don't write Z to file
+				self.do(self.G1xye.format(x=dx_w, y=dy_w, e=e_w))
+			else:
+				self.do(self.G1xyze.format(x=dx_w, y=dy_w, z=dz_w, e=e_w))
 		else:
-			self.do(self.G1xyz.format(x=dx_w, y=dy_w, z=dz_w))
+			self.write_gcode_comment("travel")
+			if (dz_w==0.0):
+				# if there is no change in Z, don't write Z to file
+				self.do(self.G0xy.format(x=dx_w, y=dy_w))
+			else:
+				self.do(self.G0xyz.format(x=dx_w, y=dy_w, z=dz_w))
 
 	def forward_lift(self, distance, height):
 		extrusion = math.sqrt(distance**2+height**2) * self.extrude_rate
@@ -607,11 +636,19 @@ class ExtruderTurtle:
 		dy_w = round(dy,4) 
 		dz_w = round(dz,4) 
 		e_w = round(extrusion,3) 
+		if (dx_w==0.0 and dy_w==0.0 and dz_w==0.0):
+			# if this is an erroneous command, don't write it to file
+			return
 		self.record_move(dx, dy, dz, de=extrusion)
 		if self.pen:
-			self.do(self.G1xyze.format(x=dx_w, y=dy_w, z=dz_w, e=e_w))
+			if (dz_w==0.0):
+				# is there is no change in Z, don't write Z to file
+				self.do(self.G1xye.format(x=dx_w, y=dy_w, e=e_w))
+			else:
+				self.do(self.G1xyze.format(x=dx_w, y=dy_w, z=dz_w, e=e_w))
 		else:
-			self.do(self.G1xyz.format(x=dx_w, y=dy_w, z=dz_w))
+			self.write_gcode_comment("travel")
+			self.do(self.G0xyz.format(x=dx_w, y=dy_w, z=dz_w))
 
 	def backward(self, distance):
 		self.forward(-float(distance))
@@ -620,21 +657,32 @@ class ExtruderTurtle:
 		self.forward(-float(distance))
 
 	def lift(self, height):
+		if (height==self.get_layer_height()):
+			self.write_gcode_comment("new layer")
 		height = float(height)
 		self.z += height
 		self.record_move(0, 0, height)
-		height = round(height,5) 
-		self.do(self.G1z.format(z=height))
+		height = round(height,4) 
+		if (dz_w==0.0):
+			# if this is an erroneous command, don't write it to file
+			return
+		if (self.pen==False):
+			self.write_gcode_comment("travel")
+		self.do(self.G1z.format(z=height)) # note normal layer changes shouldn't count as travels
 
 	# set position from a rhinoscript point
 	def set_position_point(self,point):
 		self.set_position(point.X, point.Y, point.Z)
 
 	# set position from optional x, y, and z values
-	def set_position(self, x=False, y=False, z=False):
+	def set_position(self, x=False, y=False, z=False, point=False):
 		if x is False: x = self.x
 		if y is False: y = self.y
 		if z is False: z = self.z
+		if (point):
+			x = point.X
+			y = point.Y
+			z = point.Z
 		dx = x-self.x
 		dy = y-self.y
 		dz = z-self.z
@@ -661,10 +709,23 @@ class ExtruderTurtle:
 		dz_w = round(dz,4) 
 		e_w = round(extrusion,3) 
 		self.record_move(dx, dy, dz, de=extrusion)
+		if (dx_w==0 and dy_w==0 and dz_w==0):
+			# if this is an erroneous command, don't write it to file
+			return
 		if self.pen:
-			self.do(self.G1xyze.format(x=dx_w, y=dy_w, z=dz_w, e=e_w))
+			if (dz_w==0.0):
+				# is there is no change in Z, don't write Z to file
+				self.do(self.G1xye.format(x=dx_w, y=dy_w, e=e_w))
+			else:
+				self.do(self.G1xyze.format(x=dx_w, y=dy_w, z=dz_w, e=e_w))
 		else:
-			self.do(self.G1xyz.format(x=dx_w, y=dy_w, z=dz_w))
+			self.write_gcode_comment("travel")
+			if (dz_w==0.0):
+				# is there is no change in Z, don't write Z to file
+				self.do(self.G0xy.format(x=dx_w, y=dy_w))
+			else:
+				print(dz_w)
+				self.do(self.G0xyz.format(x=dx_w, y=dy_w, z=dz_w))
 
 
 	def set_state(self, t2):
