@@ -165,8 +165,8 @@ class ExtruderTurtle:
 			self.speed = 1000 #mm/minute
 			self.printer = "civil"
 			self.resolution = 10.0
-			self.x_size = 2000
-			self.y_size = 2000
+			self.x_size = 2200
+			self.y_size = 1800
 		else:
 			print ("No printer set!! \nCheck the name of your printer and try again. \nWe support: super, micro, eazao, and ender")
 
