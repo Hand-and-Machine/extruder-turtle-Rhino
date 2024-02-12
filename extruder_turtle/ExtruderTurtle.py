@@ -161,7 +161,7 @@ class ExtruderTurtle:
 			self.nozzle = 20.0
 			self.extrude_width = 10.0
 			self.layer_height = 10.0
-			self.extrude_rate = 10.0 #mm extruded/mm
+			self.extrude_rate = 1.0 #mm extruded/mm
 			self.speed = 1000 #mm/minute
 			self.printer = "civil"
 			self.resolution = 10.0
@@ -342,7 +342,7 @@ class ExtruderTurtle:
 		self.extrude_rate = nozzle_size
 		print("nozzle size set to: " +str(nozzle_size))
 		if (comment):
-			self.out_file.write("Set nozzle size to: " +str(nozzle_size))
+			self.out_file.write("; Set nozzle size to: " +str(nozzle_size))
 			self.out_file.write("; *************************************************\n\n")
 		#print("extrude width set to: " +str(self.extrude_width))
 		#print("extrude rate set to: " +str(self.extrude_rate))
