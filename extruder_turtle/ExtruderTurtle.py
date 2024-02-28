@@ -100,7 +100,7 @@ class ExtruderTurtle:
 			self.extrude_rate = 0.05 #mm extruded/mm
 			self.speed = 1000 #mm/minute
 			self.printer = "ender"
-			self.resolution = .05
+			self.resolution = .1
 			self.x_size = 220
 			self.y_size = 220
 		elif (printer=="super" or printer=="3Dpotter" or printer=="3D Potter"  or printer=="3d potter"  or printer=="Super"):
