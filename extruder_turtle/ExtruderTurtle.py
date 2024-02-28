@@ -167,6 +167,18 @@ class ExtruderTurtle:
 			self.resolution = 10.0
 			self.x_size = 2200
 			self.y_size = 1800
+		if (printer=="tronxy"):
+			if(self.out_file):
+				self.initseq_filename = os.path.join(__location__, "data/initseqEazao.gcode") 
+			self.nozzle = 3.0
+			self.extrude_width = 3.0 #mostly for solid bottoms
+			self.layer_height = 2.2
+			self.extrude_rate = 2.5 #mm extruded/mm
+			self.speed = 1200 #mm/minute 
+			self.printer = "tronxy"
+			self.resolution = .5
+			self.x_size = 255
+			self.y_size = 255
 		else:
 			print ("No printer set!! \nCheck the name of your printer and try again. \nWe support: super, micro, eazao, and ender")
 
@@ -293,7 +305,7 @@ class ExtruderTurtle:
 	def set_extrude_rate(self, extrude_rate, comment=True):
 		self.extrude_rate = extrude_rate
 		print("extrude rate set to: " +str(extrude_rate))
-		if (comment):
+		if (comment and self.out_file!=False):
 			self.write_gcode_comment("Changed extrude rate to: " +str(extrude_rate))
 			self.out_file.write("; *************************************************\n\n")
 
@@ -303,7 +315,7 @@ class ExtruderTurtle:
 	def set_extrude_width(self, extrude_width, comment=True):
 		self.extrude_width = extrude_width
 		print("extrude width set to: " +str(extrude_width))
-		if (comment):
+		if (comment and self.out_file!=False):
 			self.write_gcode_comment("Changed extrude width to: " +str(extrude_width))
 			self.out_file.write("; *************************************************\n\n")
 
@@ -341,7 +353,7 @@ class ExtruderTurtle:
 		self.layer_height = nozzle_size*.8
 		self.extrude_rate = nozzle_size
 		print("nozzle size set to: " +str(nozzle_size))
-		if (comment):
+		if (comment and self.out_file!=False):
 			self.out_file.write("; Set nozzle size to: " +str(nozzle_size))
 			self.out_file.write("; *************************************************\n\n")
 		#print("extrude width set to: " +str(self.extrude_width))
@@ -350,7 +362,7 @@ class ExtruderTurtle:
 
 	def set_nozzle(self, nozzle_size, comment=True):
 		self.set_nozzle_size(nozzle_size)
-		if (comment):
+		if (comment and self.out_file!=False):
 			self.out_file.write("Set nozzle size to: " +str(nozzle_size))
 			self.out_file.write("; *************************************************\n\n")
 
@@ -366,15 +378,15 @@ class ExtruderTurtle:
 			return
 
 		self.mix_factor = mix_factor
-		print("mix factor set to: " +str(round(self.mix_factor,3)))
+		print("mix factor set to: " +str(round(self.mix_factor,5)))
 		self.out_file.write("; *************************************************\n")
-		self.out_file.write("M163 S0 P" +str(round(mix_factor,3)) + " ; Set Mix Factor small auger extruder\n")
-		self.out_file.write("M163 S1 P" +str(round(1.0-mix_factor,3)) + " ; Set Mix Factor large plunger extruder\n")
+		self.out_file.write("M163 S0 P" +str(round(mix_factor,5)) + " ; Set Mix Factor small auger extruder\n")
+		self.out_file.write("M163 S1 P" +str(round(1.0-mix_factor,5)) + " ; Set Mix Factor large plunger extruder\n")
 		self.out_file.write("M164 S0 ; Finalize mix\n")
 		self.out_file.write("; *************************************************\n\n")
 
 	def get_mix_factor(self):
-		return round(self.mix_factor,3)
+		return round(self.mix_factor,5)
 
 	def set_material(self,material=False):
 		if (self.out_file==False):
@@ -404,9 +416,9 @@ class ExtruderTurtle:
 
 	def set_layer_height(self, layer_height, comment=True):
 		self.layer_height = layer_height
-		print("layer height set to: " +str(round(layer_height,4)))
-		if (comment):
-			self.write_gcode_comment("Layer height set to: " +str(round(layer_height,4)))
+		print("layer height set to: " +str(round(layer_height,5)))
+		if (comment and self.out_file!=False):
+			self.write_gcode_comment("Layer height set to: " +str(round(layer_height,5)))
 			self.out_file.write("; *************************************************\n")
 
 	def get_layer_height(self):
@@ -602,10 +614,10 @@ class ExtruderTurtle:
 		self.x += dx
 		self.y += dy
 		self.z += dz
-		dx_w = round(dx,4) 
-		dy_w = round(dy,4) 
-		dz_w = round(dz,4) 
-		e_w = round(extrusion,3) 
+		dx_w = round(dx,5) 
+		dy_w = round(dy,5) 
+		dz_w = round(dz,5) 
+		e_w = round(extrusion,5) 
 		if (dx_w==0 and dy_w==0 and dz_w==0):
 			# if this is an erroneous command, don't write it to file
 			return
@@ -632,10 +644,10 @@ class ExtruderTurtle:
 		self.x += float(dx)
 		self.y += float(dy)
 		self.z += float(dz)
-		dx_w = round(dx,4) 
-		dy_w = round(dy,4) 
-		dz_w = round(dz,4) 
-		e_w = round(extrusion,3) 
+		dx_w = round(dx,5) 
+		dy_w = round(dy,5) 
+		dz_w = round(dz,5) 
+		e_w = round(extrusion,5) 
 		if (dx_w==0.0 and dy_w==0.0 and dz_w==0.0):
 			# if this is an erroneous command, don't write it to file
 			return
@@ -662,7 +674,7 @@ class ExtruderTurtle:
 		height = float(height)
 		self.z += height
 		self.record_move(0, 0, height)
-		height = round(height,4) 
+		height = round(height,5) 
 		if (dz_w==0.0):
 			# if this is an erroneous command, don't write it to file
 			return
@@ -704,10 +716,10 @@ class ExtruderTurtle:
 		else:
 			self.left(-float(yaw))
 
-		dx_w = round(dx,4) 
-		dy_w = round(dy,4) 
-		dz_w = round(dz,4) 
-		e_w = round(extrusion,3) 
+		dx_w = round(dx,5) 
+		dy_w = round(dy,5) 
+		dz_w = round(dz,5) 
+		e_w = round(extrusion,5) 
 		self.record_move(dx, dy, dz, de=extrusion)
 		if (dx_w==0 and dy_w==0 and dz_w==0):
 			# if this is an erroneous command, don't write it to file
