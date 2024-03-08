@@ -845,9 +845,10 @@ class ExtruderTurtle:
 		elif (self.printer == "micro"):
 			distance_multiplier = .265 
 		else:
-			distance_multiplier = 1.0
+			distance_multiplier = .25
 
-		volume = total_distance*math.pi*(self.extrude_width/2)*(self.extrude_width/2)*self.extrude_rate*distance_multiplier
+		volume = total_distance*math.pi*(self.extrude_width/2)*(self.extrude_width/2)
+
 		extruder_distance = 0
 		if (print_out):
 			#print("total volume of path in cubic mm: " +str(round(volume,2)))
@@ -869,8 +870,9 @@ class ExtruderTurtle:
 				print("total mm on extruder: " +str(round(extruder_distance,0)))
 		return round(extruder_distance,1), volume
 
-	def get_volume(self, print_out=True, distance_multiplier = .55):
-		return self.volume_of_path(print_out=print_out, distance_multiplier = distance_multiplier)
+	def get_volume(self, print_out=True, distance_multiplier = 1.0):
+		extruder_distance,volume = self.volume_of_path(print_out=print_out, distance_multiplier = distance_multiplier)
+		return volume
 
 	# density must be in g/ml
 	def mass_of_path(self, density=False, print_out=False, mass_multiplier = 1.0):
