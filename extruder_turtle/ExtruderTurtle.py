@@ -673,13 +673,13 @@ class ExtruderTurtle:
 		height = float(height)
 		self.z += height
 		self.record_move(0, 0, height)
-		height = round(height,4) 
+		dz_w = round(height,4) 
 		if (dz_w==0.0):
 			# if this is an erroneous command, don't write it to file
 			return
 		if (self.pen==False):
 			self.write_gcode_comment("travel")
-		self.do(self.G1z.format(z=height)) # note normal layer changes shouldn't count as travels
+		self.do(self.G1z.format(z=dz_w)) # note normal layer changes shouldn't count as travels
 
 	# set position from a rhinoscript point
 	def set_position_point(self,point):
@@ -871,7 +871,7 @@ class ExtruderTurtle:
 		return round(extruder_distance,1), volume
 
 	def get_volume(self, print_out=True, distance_multiplier = 1.0):
-		extruder_distance,volume = self.volume_of_path(print_out=print_out, distance_multiplier = distance_multiplier)
+		extruder_distance,volume = self.volume_of_path(print_out=True, distance_multiplier = distance_multiplier)
 		return volume
 
 	# density must be in g/ml

@@ -6,28 +6,32 @@
 ; **** Hand and Machine Lab, UNM, 2021-present ****
 ; *************************************************
 ; *************************************************
-; *************** Matrix initialization **************
-G28
-G90                     		; Absolute coordinates for X,Y,Z axes
-G0 F2000 X1000.0 Y1000.0 Z200 	; Move to starting position
-M83 							; Relative extrustion
-G91                     		; Relative coordinates for X,Y,Z axes
+; *************** Ender initialization **************
+G92 E0 ; Reset Extruder 
+G28 ; Home all axes
+G90 ; Absolute coordinates for X,Y,Z   
+M190 S60 ; Set bed temperature and wait 
+M109 S205 ; Set extruder temperature and wait 
+F300 E3                 ; Extrude to get ready
+M83 					; Relative extrustion
+G91                     ; Relative coordinates for X,Y,Z axes
 G1 F1000
 ; ********** End printer initialization ***********
 ; *************************************************
 
 ; ***************** Print parameters **************
-; Nozzle size: 20.0
-; Extrude width: 10.0
-; Layer height: 10.0
-; Extrude rate: 10.0
+; Nozzle size: 0.2
+; Extrude width: 0.4
+; Layer height: 0.2
+; Extrude rate: 0.05
 ; Speed: 1000
 ; Mix Factor: 0.9
 ; *************************************************
 
-G1 X50.0 Y0.0 E500.0
-G1 X-25.0 Y-43.3013 E500.0
-G1 X-25.0 Y43.3013 E500.0
+G1 X50.0 Y0.0 E2.5
+G1 X-25.0 Y-43.3013 E2.5
+G1 X-25.0 Y43.3013 E2.5
+
 ; *************** End of print ***************
 G91                     ; Relative coordinates for X,Y,Z axes
 G1 Z25 F2000            ; move up 25 in the z direction
