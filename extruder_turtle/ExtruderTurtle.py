@@ -158,7 +158,7 @@ class ExtruderTurtle:
 			if(self.out_file):
 				self.initseq_filename = os.path.join(__location__, "data/initseqCivil.gcode") 
 			self.nozzle = 20.0
-			self.extrude_width = 10.0
+			self.extrude_width = 20.0
 			self.layer_height = 10.0
 			self.extrude_rate = 1.0 #mm extruded/mm
 			self.speed = 1000 #mm/minute
@@ -178,8 +178,8 @@ class ExtruderTurtle:
 			self.resolution = .5
 			self.x_size = 255
 			self.y_size = 255
-		else:
-			print ("No printer set!! \nCheck the name of your printer and try again. \nWe support: super, micro, eazao, and ender")
+		#else:
+			#print ("No printer set!! \nCheck the name of your printer and try again. \nWe support: super, micro, eazao, and ender")
 
 		if(self.out_file):
 			self.finalseq_filename = os.path.join(__location__, "data/finalseq.gcode")
@@ -836,22 +836,20 @@ class ExtruderTurtle:
 		#print("total distance of path in mm: " +str(round(total_distance,2)))
 		return total_distance
 
-	def volume_of_path(self, print_out=True, distance_multiplier = .55):
+	def volume_of_path(self, print_out=True, distance_multiplier = 1.0):
 		total_distance = self.length_of_path()
 		# volume in cubic cm ; ml
 		if (self.printer == "eazao" or self.printer == "matrix"):
 			distance_multiplier = .55
-			distance_multiplier = .86
-		elif (self.printer == "micro"):
-			distance_multiplier = .265 
 		else:
-			distance_multiplier = .25
+			distance_multiplier = 1.0
 
-		volume = total_distance*math.pi*(self.extrude_width/2)*(self.extrude_width/2)
+		volume = total_distance*math.pi*(self.nozzle_size/2)*(self.nozzle_size/2)
 
 		extruder_distance = 0
 		if (print_out):
 			#print("total volume of path in cubic mm: " +str(round(volume,2)))
+			print("total length of path in mm: " +str(round(total_distance, 0)))
 			print("total volume of path in ml: " +str(round(volume/1000, 0)))
 			print("approximate time in minutes: " +str(round(total_distance/self.get_speed(), 0)))
 		if (self.printer=="eazao" or self.printer=="matrix"):
