@@ -1,5 +1,6 @@
 import os
 import math
+import copy
 import rhinoscriptsyntax as rs
 __location__ = os.path.dirname(__file__)
 
@@ -166,18 +167,19 @@ class ExtruderTurtle:
 			self.resolution = 10.0
 			self.x_size = 2200
 			self.y_size = 1800
-		if (printer=="tronxy"):
+		if (printer=="lutum"):
 			if(self.out_file):
-				self.initseq_filename = os.path.join(__location__, "data/initseqEazao.gcode") 
-			self.nozzle = 3.0
-			self.extrude_width = 3.0 #mostly for solid bottoms
-			self.layer_height = 2.2
-			self.extrude_rate = 2.5 #mm extruded/mm
-			self.speed = 1200 #mm/minute 
-			self.printer = "tronxy"
+				self.initseq_filename = os.path.join(__location__, "data/initseqLutum.gcode") 
+			
+			self.nozzle = 1.5
+			self.extrude_width = 2.0
+			self.layer_height = 1.0
+			self.extrude_rate = .25 #mm extruded/mm
+			self.speed = 1500 #mm/minute
+			self.printer = "lutum"
 			self.resolution = .5
-			self.x_size = 255
-			self.y_size = 255
+			self.x_size = 400
+			self.y_size = 460
 		#else:
 			#print ("No printer set!! \nCheck the name of your printer and try again. \nWe support: super, micro, eazao, and ender")
 
@@ -185,7 +187,7 @@ class ExtruderTurtle:
 			self.finalseq_filename = os.path.join(__location__, "data/finalseq.gcode")
 
 	###################################################################\
-	# GCODE and printer functions
+	# GCODE and file-related functions
 	###################################################################
 
 	def createFile(self, filename, path = False):
@@ -222,7 +224,7 @@ class ExtruderTurtle:
 		print("layer height: " +str(self.layer_height))
 		print("extrude rate: " +str(self.extrude_rate))
 		print("extrude width: " +str(self.extrude_width))
-		self.write_printer_parameters_to_file()
+		self.write_print_parameters_to_file()
 
 	def print_printer_information(self):
 		print("printer: " +str(self.printer))
@@ -300,6 +302,10 @@ class ExtruderTurtle:
 	def do(self, cmd):
 		if self.write_gcode:
 			self.out_file.write(cmd + "\n")
+
+	###################################################################
+	# Print and printer parameters
+	###################################################################
 
 	def set_extrude_rate(self, extrude_rate, comment=True):
 		self.extrude_rate = extrude_rate
@@ -432,6 +438,7 @@ class ExtruderTurtle:
 	def set_speed(self, feedrate):
 		self.do(self.G1f.format(f=feedrate))
 		self.speed = feedrate
+		#print("speed set to: " +str(round(feedrate,0)))
 
 	def get_speed(self):
 		return self.speed
@@ -628,7 +635,8 @@ class ExtruderTurtle:
 			else:
 				self.do(self.G1xyze.format(x=dx_w, y=dy_w, z=dz_w, e=e_w))
 		else:
-			self.write_gcode_comment("travel")
+			if (self.write_gcode==True):
+				self.write_gcode_comment("travel")
 			if (dz_w==0.0):
 				# if there is no change in Z, don't write Z to file
 				self.do(self.G0xy.format(x=dx_w, y=dy_w))
@@ -658,7 +666,8 @@ class ExtruderTurtle:
 			else:
 				self.do(self.G1xyze.format(x=dx_w, y=dy_w, z=dz_w, e=e_w))
 		else:
-			self.write_gcode_comment("travel")
+			if (self.write_gcode==True):
+				self.write_gcode_comment("travel")
 			self.do(self.G0xyz.format(x=dx_w, y=dy_w, z=dz_w))
 
 	def backward(self, distance):
@@ -678,7 +687,8 @@ class ExtruderTurtle:
 			# if this is an erroneous command, don't write it to file
 			return
 		if (self.pen==False):
-			self.write_gcode_comment("travel")
+			if (self.write_gcode==True):
+				self.write_gcode_comment("travel")
 		self.do(self.G1z.format(z=dz_w)) # note normal layer changes shouldn't count as travels
 
 	# set position from a rhinoscript point
@@ -730,12 +740,13 @@ class ExtruderTurtle:
 			else:
 				self.do(self.G1xyze.format(x=dx_w, y=dy_w, z=dz_w, e=e_w))
 		else:
-			self.write_gcode_comment("travel")
+			if (self.write_gcode==True):
+				self.write_gcode_comment("travel")
 			if (dz_w==0.0):
 				# is there is no change in Z, don't write Z to file
 				self.do(self.G0xy.format(x=dx_w, y=dy_w))
 			else:
-				print(dz_w)
+				#print(dz_w)
 				self.do(self.G0xyz.format(x=dx_w, y=dy_w, z=dz_w))
 
 
@@ -766,7 +777,7 @@ class ExtruderTurtle:
 		return rs.CreatePoint(x,y,z)
 
 	def get_heading(self):
-		self.get_yaw()
+		return self.get_yaw()
 
 	def get_yaw(self):
 		x, y, z = self.forward_vec
@@ -827,6 +838,56 @@ class ExtruderTurtle:
 			if (l[0] != l[1]):
 				points.append(rs.CreatePoint(l[0][0],l[0][1],l[0][2]))
 		return points
+
+
+	###################################################################
+	# Dual extrusion functions
+	###################################################################
+
+	def add_turtle(self):
+		if (printer != "lutum"): # only the lutum supports dual extrusioin
+			return
+
+	def create_subturtle(self):
+		t1 = ExtruderTurtle()
+		t1 = copy.deepcopy(self)
+		t1.nozzle = self.nozzle
+		t1.extrude_width = self.extrude_width
+		t1.layer_height = self.layer_height
+		t1.extrude_rate = self.extrude_rate
+		t1.speed = self.speed
+		t1.printer = self.printer
+		t1.resolution = self.resolution
+		t1.x_size = self.x_size
+		t1.y_size = self.y_size
+
+		if (self.out_filename):
+			t1.out_filename = self.out_filename
+			t1.write_gcode = True
+			t1.out_file = self.out_file
+
+		return t1
+
+	def change_tool(self,t,n): # from t (current turtle) to n (number of next turtle)
+		distance_btwn_nozzles = 44.8 #in mm
+		self.out_file.write("T" + str(n) + "\n")
+		self.write_gcode = False
+		self.penup()
+		self.set_position_point(t.get_position())
+		self.set_heading(t.get_heading())
+		self.pendown()
+		self.write_gcode = True
+		self.out_file.write("G1 F3000 \n") #set speed to 3000
+		# adjust position for distance between extruders
+		if (n==0):
+			self.out_file.write("G1 X" +str(distance_btwn_nozzles)  + " Y0.0 ; adjusting for distance between T1 and T0 \n")
+		elif (n==1):
+			self.out_file.write("G1 X-" +str(distance_btwn_nozzles) + " Y0.0  ; adjusting for distance between T0 and T1 \n")
+		self.set_speed(self.get_speed()) #set speed to appropriate speed
+
+	###################################################################
+	# Path and analysis functions
+	###################################################################
 
 	def length_of_path(self):
 		total_distance = 0

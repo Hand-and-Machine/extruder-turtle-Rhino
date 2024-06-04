@@ -566,7 +566,7 @@ def follow_closed_line(t,points=False,curve=False,z_inc=0,walls = 1,matrix=False
 		points = rs.DivideCurve (curve, num_points)
 
 	#start with pen up
-	t.penup()
+	#t.penup()
 
 	# t2 keeps track of points for next wall
 	t2 = e.ExtruderTurtle()
@@ -1110,12 +1110,12 @@ def pattern_cylinder(t, b_diameter, height, t_diameter=False, array=False, patte
 		print("Generating pattern for every other layer")
 	
 	if (pattern_amplitude == False):
-		pattern_amplitude = 2.0 #base_amplitude+1.0
+		pattern_amplitude = base_amplitude+1.0
 	if (t_diameter == False):
 		t_diameter = b_diameter
 	
 	layers = int(height/t.get_layer_height())
-	top_layers = 0 #number of layers at the top with no pattern
+	top_layers = 6 #number of layers at the top with no pattern
 	extra_bottom_layers = 0 #number of extra layers at the bottom with no pattern
 	diameter = b_diameter
 	diameter_inc = float(t_diameter - b_diameter)/layers
@@ -1487,15 +1487,15 @@ def centered_poly(t,diameter, steps=360):
 	circumference = diameter * math.pi
 	c_inc = circumference/steps
 
-	outer_angle = 360/steps
-	inner_angle = 180-360/steps
+	outer_angle = 360.0/steps
+	inner_angle = 180.0-360.0/steps
 
 	t.penup()
 	t.forward(r)
-	t.left(outer_angle + inner_angle/2)
+	t.left(outer_angle + inner_angle/2.0)
 	t.pendown()
 
-	for i in range (steps):
+	for i in range (steps+1):
 		t.forward(c_inc)
 		t.left(outer_angle)
 
