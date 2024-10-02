@@ -66,6 +66,50 @@ class ExtruderTurtle:
 		self.M104s = "M104 S{s}\nM109 S{s}"
 		self.M140s = "M140 S{s}\nM190 S{s}"
 
+	def copy(self,t):
+		self.x = t.x
+		self.y = t.y
+		self.z = t.z
+		self.forward_vec = t.forward_vec
+		self.left_vec = t.left_vec
+		self.up_vec = t.up_vec
+		self.use_degrees = t.use_degrees
+		self.pen = t.pen
+		self.mix_factor = t.mix_factor
+
+		# GCODE writing and history tracking
+		self.write_gcode = t.write_gcode
+
+		# printer and material settings
+		self.nozzle_size = 0
+		self.extrude_width = 0
+		self.layer_height = 0
+		self.extrude_rate = 0
+		self.speed = 0
+		self.density = 0.0
+		self.resolution = False
+		self.nozzle_height = 15
+		self.nozzle_width = 4	#max width of nozzle at nozzle_height, for TRAvel Slicer
+		self.starting_x = t.starting_x
+		self.starting_y = t.starting_y
+
+		# GCODE text formats
+		self.G1xyze = "G1 X{x} Y{y} Z{z} E{e}"
+		self.G1xyz = "G1 X{x} Y{y} Z{z}"
+		self.G1xye = "G1 X{x} Y{y} E{e}"
+		self.G1xy = "G1 X{x} Y{y}"
+		self.G1e = "G1 E{e}"
+		self.G1f = "G1 F{f}"
+		self.G1z = "G1 Z{z}"
+		self.G0xyz = "G0 X{x} Y{y} Z{z}"
+		self.G0xy = "G0 X{x} Y{y}"
+		self.G0z = "G0 Z{z}"
+		self.G0f = "G0 F{f}"
+		self.G4p = "G4 P{p}"
+		self.M0 = "M0"
+		self.M104s = "M104 S{s}\nM109 S{s}"
+		self.M140s = "M140 S{s}\nM190 S{s}"
+
 	# set up Turtle and GCODE file
 	def setup(self, x=0,
 					y=0,
@@ -170,16 +214,30 @@ class ExtruderTurtle:
 		if (printer=="lutum"):
 			if(self.out_file):
 				self.initseq_filename = os.path.join(__location__, "data/initseqLutum.gcode") 
-			
-			self.nozzle = 1.5
-			self.extrude_width = 2.0
-			self.layer_height = 1.0
-			self.extrude_rate = .25 #mm extruded/mm
-			self.speed = 1500 #mm/minute
+			self.nozzle = 3.0
+			self.extrude_width = 3.4
+			self.layer_height = 2.2
+			self.extrude_rate = .50 #mm extruded/mm
+			self.speed = 1200 #mm/minute
 			self.printer = "lutum"
-			self.resolution = .5
+			self.resolution = 1.0
 			self.x_size = 400
 			self.y_size = 460
+		if (printer=="dual_nozzle_clay"):
+			if(self.out_file):
+				self.initseq_filename = os.path.join(__location__, "data/initseqDual.gcode") 
+			self.nozzle = 1.5
+			self.extrude_width = 2.25
+			self.layer_height = 1.0
+			self.extrude_rate = 1.0 #mm extruded/mm
+			self.speed = 1000 #mm/minute
+			self.printer = "dual_nozzle_clay"
+			self.resolution = .5
+			self.x_size = 300
+			self.y_size = 300
+			self.starting_x = 150
+			self.starting_y = 150
+
 		#else:
 			#print ("No printer set!! \nCheck the name of your printer and try again. \nWe support: super, micro, eazao, and ender")
 
@@ -447,7 +505,7 @@ class ExtruderTurtle:
 		self.do(self.G4p.format(p=ms))
 
 	def pause(self, ms):
-		if (self.printer=="ender"):
+		if (self.printer=="ender" or self.printer=="lutum"):
 			self.do(self.G4p.format(p=ms))
 		else:
 			self.write_gcode_comment("hack pause")
@@ -503,12 +561,16 @@ class ExtruderTurtle:
 
 	def pen_up(self):
 		self.pen = False
-
+	
 	def pendown(self):
 		self.pen = True
+		if (self.out_file!=False):
+			self.out_file.write("G1 F" +str(self.get_speed()) +" \n") #set speed back to normal
 
 	def pen_down(self):
 		self.pen = True
+		if (self.out_file!=False):
+			self.out_file.write("G1 F" +str(self.get_speed()) +" \n") #set speed back to normal
 
 	def yaw(self, angle):
 		theta = self.convert_angle(angle)
@@ -763,6 +825,10 @@ class ExtruderTurtle:
 	def get_position(self):
 		return rs.CreatePoint(self.x, self.y, self.z)
 
+		# get position as a rhinoscript point
+	def get_absolute_position(self):
+		return rs.CreatePoint(self.x+self.starting_x, self.y+self.starting_y, self.z)
+
 	def getX(self):
 		return self.x
 
@@ -771,6 +837,10 @@ class ExtruderTurtle:
 	
 	def getZ(self):
 		return self.z
+
+	def get_absoluteX(self):
+		return (self.x + self.starting_x);
+
 
 	def get_vector(self):
 		x, y, z = self.forward_vec
@@ -844,22 +914,9 @@ class ExtruderTurtle:
 	# Dual extrusion functions
 	###################################################################
 
-	def add_turtle(self):
-		if (printer != "lutum"): # only the lutum supports dual extrusioin
-			return
-
 	def create_subturtle(self):
 		t1 = ExtruderTurtle()
-		t1 = copy.deepcopy(self)
-		t1.nozzle = self.nozzle
-		t1.extrude_width = self.extrude_width
-		t1.layer_height = self.layer_height
-		t1.extrude_rate = self.extrude_rate
-		t1.speed = self.speed
-		t1.printer = self.printer
-		t1.resolution = self.resolution
-		t1.x_size = self.x_size
-		t1.y_size = self.y_size
+		t1.copy(self)
 
 		if (self.out_filename):
 			t1.out_filename = self.out_filename
@@ -868,22 +925,53 @@ class ExtruderTurtle:
 
 		return t1
 
-	def change_tool(self,t,n): # from t (current turtle) to n (number of next turtle)
-		distance_btwn_nozzles = 44.8 #in mm
+	def change_tool(self,t,n,mode="double_nozzle",prime=True): # from t (current turtle) to n (number of next turtle)
+		self.out_file.write("; ************** Tool change sequence ***************\n")
 		self.out_file.write("T" + str(n) + "\n")
-		self.write_gcode = False
+
+		# move turtle to the position of previous turtle
+		self.write_gcode = False #turn off gcode writing
+		current_pen = self.pen
 		self.penup()
 		self.set_position_point(t.get_position())
 		self.set_heading(t.get_heading())
-		self.pendown()
-		self.write_gcode = True
-		self.out_file.write("G1 F3000 \n") #set speed to 3000
-		# adjust position for distance between extruders
-		if (n==0):
-			self.out_file.write("G1 X" +str(distance_btwn_nozzles)  + " Y0.0 ; adjusting for distance between T1 and T0 \n")
-		elif (n==1):
-			self.out_file.write("G1 X-" +str(distance_btwn_nozzles) + " Y0.0  ; adjusting for distance between T0 and T1 \n")
-		self.set_speed(self.get_speed()) #set speed to appropriate speed
+		self.pen = current_pen
+		self.write_gcode = True #turn gcode writing back on
+
+
+		# move up 10 in Z. Then:
+		# using abosolute positioning, move next tool to position of current tool
+		self.out_file.write("G0 Z5 ; move up in Z\n")
+		self.out_file.write("G90 ; absolute positioning\n")
+		self.out_file.write("G0 X" + str(round(t.get_absoluteX(),4))+" F3000; move to correct X position\n")
+		self.out_file.write("G91 ; relative positioning\n")
+		self.out_file.write("G0 Z-5 ; move down in Z\n")
+		self.out_file.write("G0 F1000 ; reset speed\n")
+		self.out_file.write("; ************** Tool change sequence end ***********\n")
+
+		# for lutum printer, need to do a manual adjustment
+		if (self.printer=="lutum"):
+			# move 100mm above print bed, wait 10 seconds, and prime new nozzle
+			# allows for manual tool head change
+			self.out_file.write("G1 F3000 \n") #set speed to 3000
+			self.out_file.write("G1 Z100 ; lift nozzle up 100mm \n")
+			self.pause(10000)
+			if (prime):
+				self.out_file.write("G1 E50 ; prime new nozzle. \n")
+		
+			# move between one nozzle and another if in double_nozzle mode
+			if (mode=="double_nozzle"):
+				distance_btwn_nozzles = 44.8 #in mm
+				# adjust position for distance between extruders
+				if (n==0):
+					self.out_file.write("G1 X" +str(distance_btwn_nozzles)  + " Y0.0 ; adjusting for distance between T1 and T0 \n")
+				elif (n==1):
+					self.out_file.write("G1 X-" +str(distance_btwn_nozzles) + " Y0.0  ; adjusting for distance between T0 and T1 \n")
+			
+			self.out_file.write("G1 Z-100 ; move nozzle back down \n")
+		
+			self.set_speed(self.get_speed()) #set speed to appropriate speed
+
 
 	###################################################################
 	# Path and analysis functions
@@ -944,7 +1032,7 @@ class ExtruderTurtle:
 			print("total mass of path in g: " +str(round(mass,2)))
 		return extruder_distance, volume, mass
 
-	def get_print_time(self, print_out=False, distance_multiplier = .54):
+	def get_print_time(self, print_out=True):
 		total_distance = self.length_of_path()
 		time = round(total_distance/self.get_speed(),0)
 		return time

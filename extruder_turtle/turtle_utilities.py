@@ -78,8 +78,8 @@ def slice_solid (shape, layer_height):
 	layers = int(height/layer_height)
 	size = rs.Distance(bb[0], bb[2])*2
 	slices = []
-	z = 0
-	for i in range (0,layers):
+	z = layer_height
+	for i in range (1,layers+1):
 		slice = one_slice(shape,z,size)
 		if (slice):
 			slices.append(slice)
@@ -397,9 +397,10 @@ def follow_slice_curves_woven(t,slices, bottom=False, spiral_up=False, matrix = 
 
 		if (i==bottom_layers):
 			if (t.get_printer()=="micro"):
-				print("cm on tube for bottom: " + str(t.get_volume(print_out=False)[0]))
+				print("cm on tube for bottom: " + str(t.get_volume(print_out=False)))
 			else:
-				print("mm on tube for bottom: " + str(t.get_volume(print_out=False)[0]))
+				print (t.get_volume())
+				print("mm on tube for bottom: " + str(t.get_volume(print_out=False)))
 
 		#main wall layers
 		if (spiral_up and i<layers-1 and i>bottom_layers):
@@ -1390,16 +1391,11 @@ def non_centered_poly(t, diameter, steps=100, walls = 1, spiral_up=False):
 
 def circular_bottom(t,diameter,layers):
 	t.extrude(t.get_nozzle_size()*3)
-	extrude_rate = t.get_extrude_rate()
-	#t.set_extrude_rate(extrude_rate/2)
 	for i in range (layers-1):
-		t.right(360/layers)
 		polygon_layer(t,diameter,return_to_center=True,offset=(i%2))
-		t.lift(t.get_layer_height()*1.25)
+		t.lift(t.get_layer_height())
 
-	t.right(360/layers)
 	polygon_layer(t,diameter,return_to_center=False)    
-	t.set_extrude_rate(extrude_rate)
 
 def circular_layer(t,diameter,spiral_up = True):
 	t.write_gcode_comment("starting circular layer")
@@ -1464,19 +1460,12 @@ def polygon_layer (t, diameter, inner_diameter =False, steps=360, return_to_cent
 	t.right(90)
 	d = d+(diameter-d)/2
 
-	if (d<diameter-t.get_extrude_width()/2):
-		t.pendown()
-		non_centered_poly(t,diameter)
-
 	if (return_to_center):
 		t.penup()
-		t.lift(t.get_layer_height()*2)
+		t.lift(t.get_layer_height()*5)
 		t.set_position_point(initial_position)
 		t.set_heading(yaw=initial_angle)
 		t.pendown()
-
-	t.penup()
-	t.lift(t.get_layer_height()*2)
 
 
 #creates a polygon centered around the turtle's current location

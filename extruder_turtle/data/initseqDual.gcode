@@ -1,5 +1,5 @@
 ; *************** Lutum initialization **************
-; 400 x 460 x 800 build volume
+; 300 x 300 x 400 build volume
 ; T0 extruder 0
 ; T1 extruder 1
 
@@ -14,7 +14,7 @@ G92 E0         ; Zero extruder
 ; G1 F2000 E5    ; Prime Extruder: Extrude some clay
 G92 E0         ; Zero extruder
 
-G0 F2000 X200.0 Y200.0 Z1.0 ; Move to starting position
+G0 F2000 X150.0 Y150.0 Z1.0 ; Move to starting position
 M83 					  ; Relative extrustion
 G91                       ; Relative coordinates for X,Y,Z axes
 T0				; Use extruder 0
