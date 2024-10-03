@@ -81,15 +81,15 @@ class ExtruderTurtle:
 		self.write_gcode = t.write_gcode
 
 		# printer and material settings
-		self.nozzle_size = 0
-		self.extrude_width = 0
-		self.layer_height = 0
-		self.extrude_rate = 0
-		self.speed = 0
-		self.density = 0.0
-		self.resolution = False
-		self.nozzle_height = 15
-		self.nozzle_width = 4	#max width of nozzle at nozzle_height, for TRAvel Slicer
+		self.nozzle_size = t.nozzle_size
+		self.extrude_width = t.extrude_width
+		self.layer_height = t.layer_height
+		self.extrude_rate = t.extrude_rate
+		self.speed = t.speed
+		self.density = t.density
+		self.resolution = t.resolution
+		self.nozzle_height = t.nozzle_height
+		self.nozzle_width = t.nozzle_width
 		self.starting_x = t.starting_x
 		self.starting_y = t.starting_y
 
@@ -928,6 +928,7 @@ class ExtruderTurtle:
 	def change_tool(self,t,n,mode="double_nozzle",prime=True): # from t (current turtle) to n (number of next turtle)
 		self.out_file.write("; ************** Tool change sequence ***************\n")
 		self.out_file.write("T" + str(n) + "\n")
+		self.out_file.write("M302 ; Allow cold extrusion\n")
 
 		# move turtle to the position of previous turtle
 		self.write_gcode = False #turn off gcode writing
@@ -938,12 +939,11 @@ class ExtruderTurtle:
 		self.pen = current_pen
 		self.write_gcode = True #turn gcode writing back on
 
-
 		# move up 10 in Z. Then:
 		# using abosolute positioning, move next tool to position of current tool
 		self.out_file.write("G0 Z5 ; move up in Z\n")
 		self.out_file.write("G90 ; absolute positioning\n")
-		self.out_file.write("G0 X" + str(round(t.get_absoluteX(),4))+" F3000; move to correct X position\n")
+		self.out_file.write("G0 X" + str(round(t.get_absoluteX(),4))+" F5000; move to correct X position\n")
 		self.out_file.write("G91 ; relative positioning\n")
 		self.out_file.write("G0 Z-5 ; move down in Z\n")
 		self.out_file.write("G0 F1000 ; reset speed\n")
