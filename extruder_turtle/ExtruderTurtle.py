@@ -928,7 +928,6 @@ class ExtruderTurtle:
 	def change_tool(self,t,n,mode="double_nozzle",prime=True): # from t (current turtle) to n (number of next turtle)
 		self.out_file.write("; ************** Tool change sequence ***************\n")
 		self.out_file.write("T" + str(n) + "\n")
-		self.out_file.write("M302 ; Allow cold extrusion\n")
 
 		# move turtle to the position of previous turtle
 		self.write_gcode = False #turn off gcode writing
