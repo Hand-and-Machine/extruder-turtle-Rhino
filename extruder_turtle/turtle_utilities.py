@@ -554,17 +554,18 @@ def follow_closed_line_exterior(t,curve,number=1,ignore_Z=False):
 
 
 #generates a turtle path from a curve or a list of rhinoscript points
-def follow_closed_line(t,points=False,curve=False,z_inc=0,walls = 1,matrix=False, ignore_Z=False):
+def follow_closed_line(t,points=False,curve=False,z_inc=0,walls = 1,matrix=False, ignore_Z=True):
 	if (not(curve) and not(points)):
 		print("You need to provide this function with either a curve or a list of points")
 		return
 	elif (curve):
 		#print("got a curve")
 		resolution = t.get_resolution()
-		points = rs.DivideCurve (curve, 100)
-		ll = line_length(points)
-		num_points = int(ll/resolution)+1
-		points = rs.DivideCurve (curve, num_points)
+		points = rs.DivideCurve (curve, 48)
+		# ll = line_length(points)
+		# num_points = int(ll/resolution)+1
+		# points = rs.DivideCurve (curve, num_points)
+
 
 	#start with pen up
 	#t.penup()
@@ -573,79 +574,90 @@ def follow_closed_line(t,points=False,curve=False,z_inc=0,walls = 1,matrix=False
 	t2 = e.ExtruderTurtle()
 	t2.penup()
 
+	if (matrix):
+		matrix=[]
+		for i in range(48):
+			if (i%12==1 or i%12==2 or i%12==3):
+				matrix.append(1)
+			else:
+				matrix.append(0)
+
 	# follow the curve
 	# generate points for next wall if applicable (poinst2)
 	points2 = []
-	for i in range (0, len(points)):
+	i=0
+	for point in points:
 		# matrix marks pen up spots in path
-		if (matrix and matrix[i]==1):
+		if (matrix and matrix[i]==0):
 			t.penup()
+		elif (matrix and matrix[i]==1):
+			t.pendown()
+		i+=1
 
 		# move to next point
 		if (z_inc==0 or walls > 1):
 			if (ignore_Z==False):
-				t.set_position(points[i].X,points[i].Y,points[i].Z)
+				t.set_position(point.X,point.Y,point.Z)
 			else:
-				t.set_position(points[i].X,points[i].Y)
-			t.pendown()
+				t.set_position(point.X,point.Y)
+			# t.pendown()
 			#print("pendown")
 		else:
-			t.set_position(points[i].X,points[i].Y)
-			t.pendown()
+			t.set_position(point.X,point.Y)
+			# t.pendown()
 			if (ignore_Z==False):
 				t.lift(z_inc)
 
-		if (i==1):
-			t.pendown()
-			#t.extrude(2)
+		# if (i==1):
+		# 	t.pendown()
+		# 	#t.extrude(2)
 
-		# get points for next wall
-		if (walls>1):
-			print("second wall")
-			if (ignore_Z==False):
-				t.set_position(points[i].X,points[i].Y,points[i].Z)
-			else:
-				t.set_position(points[i].X,points[i].Y)
-			t2.left(90)
-			t2.forward(t.get_extrude_width())
-			x1 = t2.getX()
-			y1 = t2.getY()
-			if (ignore_Z==False):
-				z1 = t2.getZ()
-			t2.backward(t.get_extrude_width())
-			t2.right(90)
-			if (ignore_Z==False):
-				points2.append(rs.CreatePoint(x1,y1,z1))
-			else:
-				points2.append(rs.CreatePoint(x1,y1,t.getZ()))
-			print(points2[0])
+		# # get points for next wall
+		# if (walls>1):
+		# 	print("second wall")
+		# 	if (ignore_Z==False):
+		# 		t.set_position(points[i].X,points[i].Y,points[i].Z)
+		# 	else:
+		# 		t.set_position(points[i].X,points[i].Y)
+		# 	t2.left(90)
+		# 	t2.forward(t.get_extrude_width())
+		# 	x1 = t2.getX()
+		# 	y1 = t2.getY()
+		# 	if (ignore_Z==False):
+		# 		z1 = t2.getZ()
+		# 	t2.backward(t.get_extrude_width())
+		# 	t2.right(90)
+		# 	if (ignore_Z==False):
+		# 		points2.append(rs.CreatePoint(x1,y1,z1))
+		# 	else:
+		# 		points2.append(rs.CreatePoint(x1,y1,t.getZ()))
+		# 	print(points2[0])
 
 
 	#close the layer curve
+	t.set_position(points[0].X,points[0].Y)
 	if (z_inc==0 or walls > 1):
 		if (ignore_Z==False):
-			t.set_position(points[0].X,points[0].Y,points[0].Z)
-		else:
-			t.set_position(points[0].X,points[0].Y)
-	else:
-		t.set_position(points[0].X,points[0].Y)
+			t.set_position(point.X,point.Y,point.Z)
 
-	# draw second wall
-	while (walls>1):
-		t.penup()
-		for i in range (0, len(points2)):
-			if (matrix and matrix[i]==1):
-				t.penup()
-			else:
-				t.pendown()
-			t.set_position(points2[i].X,points2[i].Y,points[i].Z)
-		walls = walls-1
-		# you've drawn 2 walls, subtract these and draw the next wall
-		'''
-		walls = walls-2
-		if (walls > 1):
-			follow_closed_line(t, points2, walls = walls)
-		'''
+	t.pendown()
+
+	# # draw second wall
+	# while (walls>1):
+	# 	t.penup()
+	# 	for i in range (0, len(points2)):
+	# 		if (matrix and matrix[i]==1):
+	# 			t.penup()
+	# 		else:
+	# 			t.pendown()
+	# 		t.set_position(points2[i].X,points2[i].Y,points[i].Z)
+	# 	walls = walls-1
+	# 	# you've drawn 2 walls, subtract these and draw the next wall
+	# 	'''
+	# 	walls = walls-2
+	# 	if (walls > 1):
+	# 		follow_closed_line(t, points2, walls = walls)
+	# 	'''
 
 def spiral_bottom(t,curve,walls=1):
 	extrude_rate = t.get_extrude_rate()
@@ -946,37 +958,62 @@ def follow_closed_line_chase (t,points=False,curve=False,z_inc=0,angle=50,moveme
 		points = rs.DivideCurve (curve, num_points)
 
 	if (points):
+		# print("got points")
 		ll = line_length(points)
 		num_points = int(ll/resolution)
-		points = rs.DivideCurve (curve, num_points)
-		t_extra_steps = 10
+		# points = rs.DivideCurve (curve, num_points)
+		t_extra_steps = 15
 
 
-	print("number of points in slice: " +str(num_points))
+	# print("number of points in slice: " +str(num_points))
 
 	# t2 follows the basic curve, t will chase t2
 	t2 = e.ExtruderTurtle()
 	
+
+	r = 0
+
 	#flat XY movement only
 	if (z_movement==False):
 		if (z_inc==0 or walls > 1):
-			t2.set_position(points[0].X,points[0].Y,points[0].Z)
+			t2.set_position(points[r].X,points[r].Y,points[r].Z)
+			t2.set_position(points[r+1].X,points[r+1].Y,points[r+1].Z)
+			t.penup()
+			t.set_position(points[r].X,points[r].Y)
+			t.pendown()
 		else:
-			t2.set_position(points[0].X,points[0].Y)
+			t2.set_position(points[r].X,points[r].Y)
+			t2.set_position(points[r+1].X,points[r+1].Y)
+			t.penup()
+			t.set_position(points[r].X,points[r].Y)
+			t.pendown()
 	
 	#adding z movement to path
 	else:
 		new_z_inc = t.get_layer_height()/num_points
 		if (z_inc==0 or walls > 1):
-			t2.set_position(points[0].X,points[0].Y,points[0].Z)
+			t2.set_position(points[r].X,points[r].Y,points[r].Z)
+			t2.set_position(points[r+1].X,points[r].Y,points[r+1].Z)
+			t.penup()
+			t.set_position(points[r].X,points[r].Y)
+			t.pendown()
 		else:
-			t2.set_position(points[0].X,points[0].Y,points[0].Z)
+			t2.set_position(points[r].X,points[r].Y,points[r].Z)
+			t2.set_position(points[r+1].X,points[r+1].Y,points[r+1].Z)
+			t.penup()
+			t.set_position(points[r].X,points[r].Y)
+			t.pendown()
+
 
 
 	previous_distance_sq = 10000000
 
-
-	for i in range (0, len(points)):
+	t.right(random.randint(0,360))
+	for j in range (r, len(points)+r):
+		if (j>=len(points)):
+			i = j%r
+		else:
+			i=j
 		if (z_movement==False):
 			# move to next point with lead turtle
 			if (z_inc==0 or walls > 1):
@@ -1003,7 +1040,11 @@ def follow_closed_line_chase (t,points=False,curve=False,z_inc=0,angle=50,moveme
 			t2.set_position(points[i].X,points[i].Y)
 
 			# move real turtle in chase pattern
-			for s in range (0,t_extra_steps):
+			for s in range (0,random.randint(t_extra_steps-5, t_extra_steps+5)):
+				if (i==0):
+					n = random.randint(0,len(points)/5)
+					t.set_position(points[n].X, points[n].Y)
+					break
 				distance_sq = distance_squaredXY(rs.CreatePoint(t2.getX(),t2.getY(),0), rs.CreatePoint(t.getX(), t.getY(),0))
 				if (distance_sq > previous_distance_sq):
 					t.right(angle)
@@ -1389,6 +1430,7 @@ def non_centered_poly(t, diameter, steps=100, walls = 1, spiral_up=False):
 	#t.set_position_point(position)
 	t.set_heading(initial_angle)
 
+
 def circular_bottom(t,diameter,layers):
 	t.extrude(t.get_nozzle_size()*3)
 	for i in range (layers-1):
@@ -1397,10 +1439,30 @@ def circular_bottom(t,diameter,layers):
 
 	polygon_layer(t,diameter,return_to_center=False)    
 
+
+def circular_layer_centered(t,diameter):
+	t.write_gcode_comment("starting circular layer")
+	# avoid generating too many points for small shapes
+	# steps = adjust_circle_steps(diameter,360,t.get_resolution(),t.get_layer_height())
+	steps = 100
+	circumference = diameter * math.pi
+	theta_inc = 360/steps
+	r = diameter/2.0
+	
+	for s in range(0,steps+1):
+		x = r*math.cos(math.radians(theta_inc*s))
+		y = r*math.sin(math.radians(theta_inc*s))
+		if (s==0):
+			t.penup()
+			t.set_position(x,y)
+			t.pendown()
+		t.set_position(x,y)
+
 def circular_layer(t,diameter,spiral_up = True):
 	t.write_gcode_comment("starting circular layer")
 	# avoid generating too many points for small shapes
 	steps = adjust_circle_steps(diameter,360,t.get_resolution(),t.get_layer_height())
+	steps = 100
 	circumference = diameter * math.pi
 	c_inc = circumference/steps
 
@@ -1420,7 +1482,7 @@ def circular_layer(t,diameter,spiral_up = True):
 
 
 # creates a solid flat layer of polygons that spiral out from a center point
-def polygon_layer (t, diameter, inner_diameter =False, steps=360, return_to_center = False, offset=0.0,rotation=0):
+def polygon_layer(t, diameter, inner_diameter =False, steps=360, return_to_center = False, offset=0.0,rotation=0):
 	t.set_heading(yaw=0)
 	t.left(rotation)
 	initial_position = t.get_position()
@@ -1441,6 +1503,7 @@ def polygon_layer (t, diameter, inner_diameter =False, steps=360, return_to_cent
 
 	#assume you start in the center of the circle
 	#move to starting radius
+	t.right(random.randint(0,360))
 	t.penup()
 	t.forward(d/2)
 	t.right(90)
@@ -1452,13 +1515,13 @@ def polygon_layer (t, diameter, inner_diameter =False, steps=360, return_to_cent
 		t.right(90)
 		d = d+t.get_extrude_width()*2
 
-	non_centered_poly(t,d)
-	#move back to starting position
-	t.penup()
-	t.left(90)
-	t.forward((diameter-d)/2)
-	t.right(90)
-	d = d+(diameter-d)/2
+	non_centered_poly(t,d)		
+	# #move back to starting position
+	# t.penup()
+	# t.left(90)
+	# t.forward((diameter-d)/2)
+	# t.right(90)
+	# d = d+(diameter-d)/2
 
 	if (return_to_center):
 		t.penup()
@@ -1469,7 +1532,7 @@ def polygon_layer (t, diameter, inner_diameter =False, steps=360, return_to_cent
 
 
 #creates a polygon centered around the turtle's current location
-def centered_poly(t,diameter, steps=360):
+def centered_poly(t,diameter, steps=100):
 	# avoid generating too many points for small shapes
 	#steps = adjust_circle_steps(diameter, steps,t.get_resolution(),t.get_layer_height())
 	r = diameter/2
@@ -1528,6 +1591,7 @@ def filled_oscillating_circle_xy(diameter, a, nOscillations, t, steps=360):
 def oscillating_circle(t, diameter, nOscillationsxy, axy, nOscillationsz=0, az=0, spiral_out=0, theta_offset=0, spiral_up = True, z_inc=0):
 	# avoid generating too many points for small shapes
 	steps = adjust_circle_steps(diameter,360,t.get_resolution(),t.get_layer_height())
+	steps = 100
 	circumference = diameter * math.pi
 	c_inc = circumference/steps
 	if (spiral_up): 
@@ -1558,6 +1622,8 @@ def oscillating_circle(t, diameter, nOscillationsxy, axy, nOscillationsz=0, az=0
 			r= b+axy*math.cos(nOscillationsxy*math.radians(theta))
 		else:
 			r= b+axy*math.cos(nOscillationsxy*math.radians(theta+theta_offset))
+		if (nOscillations==0):
+			r=diameter/2.0
 		x = r*math.cos(math.radians(theta))
 		y = r*math.sin(math.radians(theta))
 		z = z + az*math.sin(math.radians(nOscillationsz*theta))

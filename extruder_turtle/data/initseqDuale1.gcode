@@ -9,7 +9,7 @@ G90            ; Absolute positioning
 M82            ; Absolute extrusion
 M302           ; Allow cold extrusion
 
-T0			   ; Use extruder 0
+T1			   ; Use extruder 1
 G92 E0         ; Zero extruder
 G1 F2000 E100  ; Prime Extruder: Extrude some clay
 G92 E0         ; Zero extruder

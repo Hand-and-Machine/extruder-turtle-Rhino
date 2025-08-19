@@ -17,6 +17,7 @@ class ExtruderTurtle:
 		self.use_degrees = True
 		self.pen = True
 		self.mix_factor = 0.9
+		self.layer = 1
 
 		# GCODE writing and history tracking
 		self.write_gcode = False
@@ -66,6 +67,12 @@ class ExtruderTurtle:
 		self.M104s = "M104 S{s}\nM109 S{s}"
 		self.M140s = "M140 S{s}\nM190 S{s}"
 
+		# dual extrusion settings
+		self.number_of_extruders = 1
+		self.current_extruder = 0
+		self.number_of_turtles = 1
+		self.current_turtle = 0
+
 	def copy(self,t):
 		self.x = t.x
 		self.y = t.y
@@ -92,6 +99,7 @@ class ExtruderTurtle:
 		self.nozzle_width = t.nozzle_width
 		self.starting_x = t.starting_x
 		self.starting_y = t.starting_y
+		self.starting_z = t.starting_z
 
 		# GCODE text formats
 		self.G1xyze = "G1 X{x} Y{y} Z{z} E{e}"
@@ -115,15 +123,15 @@ class ExtruderTurtle:
 					y=0,
 					z=0,
 					filename=False,
-					printer=False):
-		
+					printer=False,
+					extruder=0):
+		self.set_extruder(extruder)
 		if (filename):
 			self.out_filename = filename
 			self.write_gcode = True
 			self.out_file = True;
 			self.initseq_file = True;
 			self.finalseq_file = True;
-			self.finalseq_filename = os.path.join(__location__, "data/finalseq.gcode")
 		if (printer):
 			self.set_printer(printer)
 		if (filename and printer):
@@ -138,9 +146,10 @@ class ExtruderTurtle:
 		if (printer=="Ender" or printer=="ender" or printer=="creatlity" ):
 			if(self.out_file):
 				self.initseq_filename = os.path.join(__location__, "data/initseqEnder.gcode") 
+				self.finalseq_filename = os.path.join(__location__, "data/finalseq.gcode")
 			self.nozzle = 0.2
 			self.extrude_width = 0.4 
-			self.layer_height = .2
+			self.layer_height = .2 
 			self.extrude_rate = 0.05 #mm extruded/mm
 			self.speed = 1000 #mm/minute
 			self.printer = "ender"
@@ -150,6 +159,7 @@ class ExtruderTurtle:
 		elif (printer=="super" or printer=="3Dpotter" or printer=="3D Potter"  or printer=="3d potter"  or printer=="Super"):
 			if(self.out_file):
 				self.initseq_filename = os.path.join(__location__, "data/initseq3DPotter.gcode")
+				self.finalseq_filename = os.path.join(__location__, "data/finalseq.gcode")
 			self.nozzle = 3.0
 			self.extrude_width = 3.4 #mostly for solid bottoms
 			self.layer_height = 2.2
@@ -163,6 +173,7 @@ class ExtruderTurtle:
 		elif (printer=="micro" or printer=="3DpotterMicro" or printer=="3D Potter Micro"  or printer=="Micro"):
 			if(self.out_file):
 				self.initseq_filename = os.path.join(__location__, "data/initseq3DPotterMicro.gcode")
+				self.finalseq_filename = os.path.join(__location__, "data/finalseq.gcode")
 			self.nozzle = 3.0
 			self.extrude_width = 3.4 #mostly for solid bottoms
 			self.layer_height = 2.2
@@ -176,6 +187,7 @@ class ExtruderTurtle:
 		elif (printer=="matrix" or printer=="Matrix"):
 			if(self.out_file):
 				self.initseq_filename = os.path.join(__location__, "data/initseqMatrix.gcode")
+				self.finalseq_filename = os.path.join(__location__, "data/finalseq.gcode")
 			self.nozzle = 1.5
 			self.extrude_width = 2.25
 			self.layer_height = 1.0
@@ -189,6 +201,7 @@ class ExtruderTurtle:
 		elif (printer=="Eazao" or printer=="eazao"):
 			if(self.out_file):
 				self.initseq_filename = os.path.join(__location__, "data/initseqEazao.gcode")
+				self.finalseq_filename = os.path.join(__location__, "data/finalseq.gcode")
 			self.nozzle = 1.5
 			self.extrude_width = 2.25
 			self.layer_height = 1.0
@@ -202,6 +215,7 @@ class ExtruderTurtle:
 		if (printer=="civil"):
 			if(self.out_file):
 				self.initseq_filename = os.path.join(__location__, "data/initseqCivil.gcode") 
+				self.finalseq_filename = os.path.join(__location__, "data/finalseq.gcode")
 			self.nozzle = 20.0
 			self.extrude_width = 20.0
 			self.layer_height = 10.0
@@ -214,6 +228,7 @@ class ExtruderTurtle:
 		if (printer=="lutum"):
 			if(self.out_file):
 				self.initseq_filename = os.path.join(__location__, "data/initseqLutum.gcode") 
+				self.finalseq_filename = os.path.join(__location__, "data/finalseq.gcode")
 			self.nozzle = 3.0
 			self.extrude_width = 3.4
 			self.layer_height = 2.2
@@ -225,9 +240,15 @@ class ExtruderTurtle:
 			self.y_size = 460
 		if (printer=="dual_nozzle_clay"):
 			if(self.out_file):
-				self.initseq_filename = os.path.join(__location__, "data/initseqDual.gcode") 
+				if (self.current_extruder==1):
+					print("Extruder 0")
+					self.initseq_filename = os.path.join(__location__, "data/initseqDuale1.gcode") 
+				else:
+					print("Extruder 0")
+					self.initseq_filename = os.path.join(__location__, "data/initseqDual.gcode") 
+				self.finalseq_filename = os.path.join(__location__, "data/finalseqDual.gcode")	
 			self.nozzle = 1.5
-			self.extrude_width = 2.25
+			self.extrude_width = 2.0
 			self.layer_height = 1.0
 			self.extrude_rate = 1.0 #mm extruded/mm
 			self.speed = 1000 #mm/minute
@@ -237,12 +258,14 @@ class ExtruderTurtle:
 			self.y_size = 300
 			self.starting_x = 150
 			self.starting_y = 150
+			self.starting_z = 0.5 # should be the same number in header
+
 
 		#else:
 			#print ("No printer set!! \nCheck the name of your printer and try again. \nWe support: super, micro, eazao, and ender")
 
-		if(self.out_file):
-			self.finalseq_filename = os.path.join(__location__, "data/finalseq.gcode")
+		# if(self.out_file):
+		# 	self.finalseq_filename = os.path.join(__location__, "data/finalseq.gcode")
 
 	###################################################################\
 	# GCODE and file-related functions
@@ -273,6 +296,9 @@ class ExtruderTurtle:
 			self.initseq_filename = os.path.join(__location__, "data/initseqEazao.gcode")
 		elif(self.printer=="matrix"):
 			self.initseq_filename = os.path.join(__location__, "data/initseqMatrix.gcode")
+		elif (printer=="dual_nozzle_clay"):
+			self.initseq_filename = os.path.join(__location__, "data/initseqDual.gcode") 
+			self.finalseq_filename = os.path.join(__location__, "data/finalseqDual.gcode")	
 		self.write_header_comments()
 
 	def print_parameters(self):
@@ -732,6 +758,21 @@ class ExtruderTurtle:
 				self.write_gcode_comment("travel")
 			self.do(self.G0xyz.format(x=dx_w, y=dy_w, z=dz_w))
 
+	def forward_lift_gcode_only(self, distance, height):
+		extrusion = math.sqrt(distance**2+height**2) * self.extrude_rate
+		dx = float(distance * self.forward_vec[0] + height * self.up_vec[0])
+		dy = float(distance * self.forward_vec[1] + height * self.up_vec[1])
+		dz = float(distance * self.forward_vec[2] + height * self.up_vec[2])
+
+		dx_w = round(dx,4) 
+		dy_w = round(dy,4) 
+		dz_w = round(dz,4) 
+		if (dx_w==0.0 and dy_w==0.0 and dz_w==0.0):
+			# if this is an erroneous command, don't write it to file
+			return
+
+		self.do(self.G0xyz.format(x=dx_w, y=dy_w, z=dz_w))
+
 	def backward(self, distance):
 		self.forward(-float(distance))
 
@@ -739,8 +780,10 @@ class ExtruderTurtle:
 		self.forward(-float(distance))
 
 	def lift(self, height):
+		# write layer number comment 
 		if (height==self.get_layer_height()):
-			self.write_gcode_comment("new layer")
+			self.write_gcode_comment("LAYER:" +str(self.layer))
+			self.layer += 1
 		height = float(height)
 		self.z += height
 		self.record_move(0, 0, height)
@@ -841,6 +884,12 @@ class ExtruderTurtle:
 	def get_absoluteX(self):
 		return (self.x + self.starting_x);
 
+	def get_absoluteY(self):
+		return (self.y + self.starting_y);
+
+	def get_absoluteZ(self):
+		return (self.z + self.starting_z);
+
 
 	def get_vector(self):
 		x, y, z = self.forward_vec
@@ -902,6 +951,18 @@ class ExtruderTurtle:
 				lines.append(rs.AddLine(l[0], l[1]))
 		return lines
 
+	def get_dual_lines(self):
+		lines0 = []
+		lines1 = []
+		for l,c in zip(self.line_segs, self.color_history):
+			if (c==(100,100,100)):
+				if (l[0] != l[1]):
+					lines0.append(rs.AddLine(l[0], l[1]))
+			else:
+				if (l[0] != l[1]):
+					lines1.append(rs.AddLine(l[0], l[1]))
+		return lines0, lines1
+
 	def get_points(self):
 		points = []
 		for l in self.line_segs:
@@ -911,23 +972,137 @@ class ExtruderTurtle:
 
 
 	###################################################################
+	# Dual extrusion functions smarter
+	###################################################################
+
+	def set_extruder(self, extruder_number=0, x=False, y=False):
+		# write extruder change to file
+		self.change_extruder_gcode(extruder_number, x, y)
+		# change color for visualization
+		if (self.current_extruder==0):
+			self.set_color(100,100,100)
+		elif (self.current_extruder==1):
+			self.set_color(200,50,100)
+		else:
+			self.set_color(255,0,0)
+
+	def swap_extruder(self):
+		if(self.current_extruder==0):
+			self.set_extruder(1)
+		elif(self.current_extruder==1):
+			self.set_extruder(0)
+
+	def get_extruder(self):
+		return self.current_extruder
+
+	def set_number_extruders(self, number=1):
+		self.number_of_extruders = number
+
+	def change_extruder_gcode(self, extruder_number, prime=True, x=False, y=False): 
+		if (self.current_extruder==extruder_number):
+			return # don't need to do anything if extruder hasn't changed
+
+		self.current_extruder = extruder_number
+		if (self.out_file==False):
+			print("No file associated with turtle. Can't write tool change to gcode!")
+			return
+
+
+		if (x==False):
+			x = round(self.get_absoluteX(),4)
+		else:
+			dx = x-self.x
+			self.x = float(x)
+			self.record_move(dx, 0,0) # record position change for turte only
+			x = x + self.starting_x
+		if (y==False):
+			y = round(self.get_absoluteY(),4)
+		else:
+			dy = y-self.y
+			self.y = float(y)
+			self.record_move(0,dy,0) # record position change for turte only
+			y = y + self.starting_y
+
+		self.out_file.write("; ************** Tool change sequence begin **********\n")
+		# self.out_file.write("G0 F2000 ; fast speed\n")
+		# self.out_file.write("G0 E-2 ; retract a little\n")
+		# if (self.current_extruder==1):
+		# 	# print("extra retraction")
+		# 	self.out_file.write("G0 E-5 ; retract a little\n")
+		self.forward_lift_gcode_only(3,2)
+
+		self.out_file.write("T" + str(self.current_extruder) + "\n")
+		# move up in Z. Then:
+		# using abosolute positioning, move next tool to position of current tool
+		self.out_file.write("G0 Z3 ; move up in Z\n")
+		self.out_file.write("G90 ; absolute positioning\n")
+		self.out_file.write("G0 X" + str(x) + 
+							  " Y" +str(y) + 
+							  " Z" +str(round(self.get_absoluteZ(),4)+3.0)+
+							  " F5000; move to correct position\n")
+		self.out_file.write("G91 ; relative positioning\n")
+		self.out_file.write("G0 Z-3 ; move down in Z\n")
+		
+		# if (self.current_extruder==1):
+		# 	# print("extra extrusion")
+		# 	self.out_file.write("G1 E20 ; extrude a little\n")
+
+		self.out_file.write("G0 F1000 ; reset speed\n")
+		self.out_file.write("; ************** Tool change sequence end ************\n")
+
+		# # for lutum printer, need to do a manual adjustment
+		# if (self.printer=="lutum"):
+		# 	# move 100mm above print bed, wait 10 seconds, and prime new nozzle
+		# 	# allows for manual tool head change
+		# 	self.out_file.write("G1 F3000 \n") #set speed to 3000
+		# 	self.out_file.write("G1 Z100 ; lift nozzle up 100mm \n")
+		# 	self.pause(10000)
+		# 	if (prime):
+		# 		self.out_file.write("G1 E50 ; prime new nozzle. \n")
+		
+		# 	# move between one nozzle and another if in double_nozzle mode
+		# 	if (mode=="double_nozzle"):
+		# 		distance_btwn_nozzles = 44.8 #in mm
+		# 		# adjust position for distance between extruders
+		# 		if (n==0):
+		# 			self.out_file.write("G1 X" +str(distance_btwn_nozzles)  + " Y0.0 ; adjusting for distance between T1 and T0 \n")
+		# 		elif (n==1):
+		# 			self.out_file.write("G1 X-" +str(distance_btwn_nozzles) + " Y0.0  ; adjusting for distance between T0 and T1 \n")
+			
+		# 	self.out_file.write("G1 Z-100 ; move nozzle back down \n")
+		
+		# 	self.set_speed(self.get_speed()) #set speed to appropriate speed
+
+
+
+	###################################################################
 	# Dual extrusion functions
 	###################################################################
 
 	def create_subturtle(self):
 		t1 = ExtruderTurtle()
 		t1.copy(self)
+		self.number_of_turtles += 1 
 
 		if (self.out_filename):
 			t1.out_filename = self.out_filename
 			t1.write_gcode = True
 			t1.out_file = self.out_file
+		else:
+			print("Warning! Creating subturtle. No gcode file is associated with the primary turtle!")
 
 		return t1
 
-	def change_tool(self,t,n,mode="double_nozzle",prime=True): # from t (current turtle) to n (number of next turtle)
-		self.out_file.write("; ************** Tool change sequence ***************\n")
-		self.out_file.write("T" + str(n) + "\n")
+	def get_current_turtle(self):
+		return self.current_turtle
+
+	def change_tool(self,t,n,mode="double_nozzle",prime=True): # from t (current turtle) to n (number of next turtle), n = self
+		self.current_turtle = n
+		t.current_turtle = n
+
+		if (self.out_file):
+			self.out_file.write("; ************** Tool change sequence ***************\n")
+			self.out_file.write("T" + str(n) + "\n")
 
 		# move turtle to the position of previous turtle
 		self.write_gcode = False #turn off gcode writing
@@ -938,15 +1113,25 @@ class ExtruderTurtle:
 		self.pen = current_pen
 		self.write_gcode = True #turn gcode writing back on
 
-		# move up 10 in Z. Then:
+		if (self.out_file==False):
+			print("No file associated with turtle. Can't write tool change to gcode!")
+			return
+
+		# move up in Z. Then:
 		# using abosolute positioning, move next tool to position of current tool
-		self.out_file.write("G0 Z5 ; move up in Z\n")
+		self.out_file.write("G0 Z3 ; move up in Z\n")
 		self.out_file.write("G90 ; absolute positioning\n")
-		self.out_file.write("G0 X" + str(round(t.get_absoluteX(),4))+" F5000; move to correct X position\n")
+		self.out_file.write("G0 X" + str(round(t.get_absoluteX(),4)) + 
+							  " Y" +str(round(t.get_absoluteY(),4)) + 
+							  " Z" +str(round(t.get_absoluteZ(),4)+3.0)+
+							  " F5000; move to correct position\n")
 		self.out_file.write("G91 ; relative positioning\n")
-		self.out_file.write("G0 Z-5 ; move down in Z\n")
+		self.out_file.write("G0 Z-3 ; move down in Z\n")
 		self.out_file.write("G0 F1000 ; reset speed\n")
 		self.out_file.write("; ************** Tool change sequence end ***********\n")
+		
+		if (n==1):
+			self.extrude(10)
 
 		# for lutum printer, need to do a manual adjustment
 		if (self.printer=="lutum"):
