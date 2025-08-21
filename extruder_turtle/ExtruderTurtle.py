@@ -853,7 +853,9 @@ class ExtruderTurtle:
 			else:
 				#print(dz_w)
 				self.do(self.G0xyz.format(x=dx_w, y=dy_w, z=dz_w))
-
+		if (dz_w>=self.layer_height):
+			self.write_gcode_comment("LAYER:" +str(self.layer))
+			self.layer+=1
 
 	def set_state(self, t2):
 		self.x = t2.getX()
