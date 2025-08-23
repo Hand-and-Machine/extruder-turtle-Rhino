@@ -221,11 +221,6 @@ def follow_curve(t, curve, double_wall = False, inner_wall=False, steps=100):
 	points = rs.DivideCurve (curve, steps)
 	dtheta = 360.0/steps
 
-
-	################################################
-	# MAIN LOOP: STRUCTURE
-	# change to nozzle 0 and build structure
-	################################################
 	i=0
 	if (inner_wall==False):
 		for point in points:

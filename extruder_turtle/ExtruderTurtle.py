@@ -590,13 +590,9 @@ class ExtruderTurtle:
 	
 	def pendown(self):
 		self.pen = True
-		if (self.out_file!=False):
-			self.out_file.write("G1 F" +str(self.get_speed()) +" \n") #set speed back to normal
 
 	def pen_down(self):
 		self.pen = True
-		if (self.out_file!=False):
-			self.out_file.write("G1 F" +str(self.get_speed()) +" \n") #set speed back to normal
 
 	def yaw(self, angle):
 		theta = self.convert_angle(angle)
