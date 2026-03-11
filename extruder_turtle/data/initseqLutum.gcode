@@ -11,10 +11,9 @@ M302           ; Allow cold extrusion
 
 G1 Z15.0 F1500 ; Move up 15mm to extrude
 G92 E0         ; Zero extruder
-; G1 F2000 E5    ; Prime Extruder: Extrude some clay
-G92 E0         ; Zero extruder
 
-G0 F2000 X200.0 Y200.0 Z1.0 ; Move to starting position
+G0 F2000 X200.0 Y200.0 Z1.3 ; Move to starting position
 M83 					  ; Relative extrustion
 G91                       ; Relative coordinates for X,Y,Z axes
 T0				; Use extruder 0
+G1 F2000 E10    ; Prime Extruder: Extrude some clay

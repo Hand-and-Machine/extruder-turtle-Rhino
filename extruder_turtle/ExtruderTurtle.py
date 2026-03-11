@@ -24,11 +24,15 @@ class ExtruderTurtle:
 		self.track_history = True
 		self.prev_points = [(self.x,self.y,self.z)]
 		self.line_segs = []
+		self.travel_line_segs = []
 		self.extrusion_history = []
+		self.speed_history = []
+		self.travel_speed_history = []
 		self.current_color = 0, 0, 0
 		self.color_history = []
 		self.tube_color = 0, 0, 0, 0, 0, 0 # r,g,b,tube_dist,volume,mass
 		self.tube_color_history = [] 
+		self.ellapsed_time = 0 # ellapsed time in seconds
 
 		# file settings
 		self.out_filename = False
@@ -143,12 +147,13 @@ class ExtruderTurtle:
 
 	# set printer parameters
 	def set_printer(self,printer):
+		self.ellapsed_time =0
 		if (printer=="Ender" or printer=="ender" or printer=="creatlity" ):
 			if(self.out_file):
 				self.initseq_filename = os.path.join(__location__, "data/initseqEnder.gcode") 
 				self.finalseq_filename = os.path.join(__location__, "data/finalseq.gcode")
-			self.nozzle = 0.2
-			self.extrude_width = 0.4 
+			self.nozzle = 0.4
+			self.extrude_width = 0.45 
 			self.layer_height = .2 
 			self.extrude_rate = 0.05 #mm extruded/mm
 			self.speed = 1000 #mm/minute
@@ -156,6 +161,19 @@ class ExtruderTurtle:
 			self.resolution = .1
 			self.x_size = 220
 			self.y_size = 220
+		if (printer=="Prusa" or printer=="prusa" or printer=="mk3" ):
+			if(self.out_file):
+				self.initseq_filename = os.path.join(__location__, "data/initseqPrusamk3.gcode") 
+				self.finalseq_filename = os.path.join(__location__, "data/finalseq.gcode")
+			self.nozzle = 0.4
+			self.extrude_width = 0.45 
+			self.layer_height = .2 
+			self.extrude_rate = 0.05 #mm extruded/mm
+			self.speed = 1500 #mm/minute
+			self.printer = "ender"
+			self.resolution = .1
+			self.x_size = 250
+			self.y_size = 210
 		elif (printer=="super" or printer=="3Dpotter" or printer=="3D Potter"  or printer=="3d potter"  or printer=="Super"):
 			if(self.out_file):
 				self.initseq_filename = os.path.join(__location__, "data/initseq3DPotter.gcode")
@@ -231,9 +249,9 @@ class ExtruderTurtle:
 				self.finalseq_filename = os.path.join(__location__, "data/finalseq.gcode")
 			self.nozzle = 3.0
 			self.extrude_width = 3.4
-			self.layer_height = 2.2
-			self.extrude_rate = .50 #mm extruded/mm
-			self.speed = 1200 #mm/minute
+			self.layer_height = 1.5
+			self.extrude_rate = .75 #mm extruded/mm
+			self.speed = 2500 #mm/minute
 			self.printer = "lutum"
 			self.resolution = 1.0
 			self.x_size = 400
@@ -296,6 +314,8 @@ class ExtruderTurtle:
 			self.initseq_filename = os.path.join(__location__, "data/initseqEazao.gcode")
 		elif(self.printer=="matrix"):
 			self.initseq_filename = os.path.join(__location__, "data/initseqMatrix.gcode")
+		elif(self.printer=="lutum"):
+			self.initseq_filename = os.path.join(__location__, "data/initseqLutum.gcode")
 		elif (printer=="dual_nozzle_clay"):
 			self.initseq_filename = os.path.join(__location__, "data/initseqDual.gcode") 
 			self.finalseq_filename = os.path.join(__location__, "data/finalseqDual.gcode")	
@@ -541,7 +561,7 @@ class ExtruderTurtle:
 
 	def pause_seconds(self, s):
 		ms = s*1000
-		if (self.printer=="ender"):
+		if (self.printer=="ender" or self.printer=="lutum"):
 			self.do(self.G4p.format(p=ms))
 		else:
 			self.write_gcode_comment("hack pause")
@@ -686,6 +706,7 @@ class ExtruderTurtle:
 		return angle
 
 	def record_move(self, dx, dy, dz, de=0,r=0,g=0,b=0):
+	# generates the line that is used for turtle visualization
 		if self.track_history:
 			prev_point = self.prev_points[-1]
 			next_point = (prev_point[0]+dx, prev_point[1]+dy, prev_point[2]+dz) 
@@ -693,7 +714,11 @@ class ExtruderTurtle:
 			if self.pen: 
 				self.line_segs.append([self.prev_points[-2], self.prev_points[-1]])
 				self.extrusion_history.append(de)
+				self.speed_history.append(self.get_speed())
 				self.color_history.append(self.current_color)
+			else:
+				self.travel_line_segs.append([self.prev_points[-2], self.prev_points[-1]])
+				self.travel_speed_history.append(self.get_speed())
 
 
 	def forward(self, distance):
@@ -719,8 +744,8 @@ class ExtruderTurtle:
 			else:
 				self.do(self.G1xyze.format(x=dx_w, y=dy_w, z=dz_w, e=e_w))
 		else:
-			if (self.write_gcode==True):
-				self.write_gcode_comment("travel")
+			# if (self.write_gcode==True):
+			# 	self.write_gcode_comment("travel")
 			if (dz_w==0.0):
 				# if there is no change in Z, don't write Z to file
 				self.do(self.G0xy.format(x=dx_w, y=dy_w))
@@ -750,8 +775,8 @@ class ExtruderTurtle:
 			else:
 				self.do(self.G1xyze.format(x=dx_w, y=dy_w, z=dz_w, e=e_w))
 		else:
-			if (self.write_gcode==True):
-				self.write_gcode_comment("travel")
+			# if (self.write_gcode==True):
+			# 	self.write_gcode_comment("travel")
 			self.do(self.G0xyz.format(x=dx_w, y=dy_w, z=dz_w))
 
 	def forward_lift_gcode_only(self, distance, height):
@@ -787,9 +812,9 @@ class ExtruderTurtle:
 		if (dz_w==0.0):
 			# if this is an erroneous command, don't write it to file
 			return
-		if (self.pen==False):
-			if (self.write_gcode==True):
-				self.write_gcode_comment("travel")
+		# if (self.pen==False):
+		# 	if (self.write_gcode==True):
+		# 		self.write_gcode_comment("travel")
 		self.do(self.G1z.format(z=dz_w)) # note normal layer changes shouldn't count as travels
 
 	# set position from a rhinoscript point
@@ -841,8 +866,8 @@ class ExtruderTurtle:
 			else:
 				self.do(self.G1xyze.format(x=dx_w, y=dy_w, z=dz_w, e=e_w))
 		else:
-			if (self.write_gcode==True):
-				self.write_gcode_comment("travel")
+			# if (self.write_gcode==True):
+			# 	self.write_gcode_comment("travel")
 			if (dz_w==0.0):
 				# is there is no change in Z, don't write Z to file
 				self.do(self.G0xy.format(x=dx_w, y=dy_w))
@@ -984,11 +1009,11 @@ class ExtruderTurtle:
 		else:
 			self.set_color(255,0,0)
 
-	def swap_extruder(self):
+	def swap_extruder(self, x=False, y=False):
 		if(self.current_extruder==0):
-			self.set_extruder(1)
+			self.set_extruder(1,x=x, y=y)
 		elif(self.current_extruder==1):
-			self.set_extruder(0)
+			self.set_extruder(0,x=x, y=y)
 
 	def get_extruder(self):
 		return self.current_extruder
@@ -996,48 +1021,47 @@ class ExtruderTurtle:
 	def set_number_extruders(self, number=1):
 		self.number_of_extruders = number
 
-	def change_extruder_gcode(self, extruder_number, prime=True, x=False, y=False): 
+	def change_extruder_gcode(self, extruder_number, x=False, y=False): 
 		if (self.current_extruder==extruder_number):
 			return # don't need to do anything if extruder hasn't changed
+
+		self.ellapsed_time = self.ellapsed_time + 15
 
 		self.current_extruder = extruder_number
 		if (self.out_file==False):
 			print("No file associated with turtle. Can't write tool change to gcode!")
 			return
 
+		if (y==False):
+			y = round(self.get_absoluteY(),4)
+		else:
+			dy = y-self.y
+			self.y = float(y)
+			self.record_move(0,dy,0) # record position change for turtle
+			y = y + self.starting_y
 
 		if (x==False):
 			x = round(self.get_absoluteX(),4)
 		else:
 			dx = x-self.x
 			self.x = float(x)
-			self.record_move(dx, 0,0) # record position change for turte only
+			self.record_move(dx,0,0) # record position change for turtle
 			x = x + self.starting_x
-		if (y==False):
-			y = round(self.get_absoluteY(),4)
-		else:
-			dy = y-self.y
-			self.y = float(y)
-			self.record_move(0,dy,0) # record position change for turte only
-			y = y + self.starting_y
 
 		self.out_file.write("; ************** Tool change sequence begin **********\n")
-		# self.out_file.write("G0 F2000 ; fast speed\n")
-		# self.out_file.write("G0 E-2 ; retract a little\n")
-		# if (self.current_extruder==1):
-		# 	# print("extra retraction")
-		# 	self.out_file.write("G0 E-5 ; retract a little\n")
+		self.out_file.write("; First, a forward lift to move away from part: \n")
 		self.forward_lift_gcode_only(3,2)
 
-		self.out_file.write("T" + str(self.current_extruder) + "\n")
+		self.out_file.write("T" + str(self.current_extruder) + " ; swap extruder\n")
 		# move up in Z. Then:
 		# using abosolute positioning, move next tool to position of current tool
 		self.out_file.write("G0 Z3 ; move up in Z\n")
+		self.out_file.write("G0 F6000 ; set speed to fast for tool swap\n")
 		self.out_file.write("G90 ; absolute positioning\n")
 		self.out_file.write("G0 X" + str(x) + 
 							  " Y" +str(y) + 
 							  " Z" +str(round(self.get_absoluteZ(),4)+3.0)+
-							  " F5000; move to correct position\n")
+							  " F6000 ; move to correct position\n")
 		self.out_file.write("G91 ; relative positioning\n")
 		self.out_file.write("G0 Z-3 ; move down in Z\n")
 		
@@ -1161,28 +1185,45 @@ class ExtruderTurtle:
 
 	def length_of_path(self):
 		total_distance = 0
+		total_time = 0
+		i=0
 		for l in self.line_segs:
 			if (l[0] != l[1]):
-				total_distance = total_distance + rs.Distance(l[0],l[1])
+				segment_distance = rs.Distance(l[0],l[1])
+				total_distance = total_distance + segment_distance
+				total_time = total_time + segment_distance/self.speed_history[i]
+			i+=1
+		i=0
+		for l in self.travel_line_segs:
+			if (l[0] != l[1]):
+				segment_distance = rs.Distance(l[0],l[1])
+				total_distance = total_distance + segment_distance
+				total_time = total_time + segment_distance/self.travel_speed_history[i]
+			i+=1
+
+		total_time = total_time+self.ellapsed_time/60
 		#print("total distance of path in mm: " +str(round(total_distance,2)))
-		return total_distance
+		return total_distance, total_time
 
 	def volume_of_path(self, print_out=True, distance_multiplier = 1.0):
-		total_distance = self.length_of_path()
+		total_distance, total_time = self.length_of_path()
 		# volume in cubic cm ; ml
 		if (self.printer == "eazao" or self.printer == "matrix"):
 			distance_multiplier = .55
 		else:
 			distance_multiplier = 1.0
 
-		volume = total_distance*math.pi*(self.nozzle_size/2)*(self.nozzle_size/2)
+		if (self.nozzle_size==0):
+			self.nozzle_size = self.get_extrude_width()
 
-		extruder_distance = 0
+		volume = total_distance*math.pi*(self.nozzle_size/2.0)*(self.nozzle_size/2.0)
+
 		if (print_out):
-			#print("total volume of path in cubic mm: " +str(round(volume,2)))
 			print("total length of path in mm: " +str(round(total_distance, 0)))
-			print("total volume of path in ml: " +str(round(volume/1000, 0)))
-			print("approximate time in minutes: " +str(round(total_distance/self.get_speed(), 0)))
+			print("total volume of path in ml: " +str(round(volume/1000.0, 2)))
+			print("approximate total time in minutes: " +str(round(total_time, 1)))
+		
+		extruder_distance = 0
 		if (self.printer=="eazao" or self.printer=="matrix"):
 			extruder_distance = volume/1000/2 
 		if (self.printer=="super"):

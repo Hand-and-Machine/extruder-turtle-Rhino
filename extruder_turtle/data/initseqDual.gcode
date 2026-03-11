@@ -11,7 +11,7 @@ M302           ; Allow cold extrusion
 
 T0			   ; Use extruder 0
 G92 E0         ; Zero extruder
-G1 F2000 E100  ; Prime Extruder: Extrude some clay
+G1 F2000 E10  ; Prime Extruder: Extrude some clay
 G92 E0         ; Zero extruder
 
 G0 F2000 X150.0 Y150.0 Z3.0 ; Move to starting position above bed

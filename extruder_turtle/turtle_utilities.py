@@ -964,12 +964,10 @@ def follow_closed_line_chase (t,points=False,curve=False,z_inc=0,angle=50,moveme
 		# points = rs.DivideCurve (curve, num_points)
 		t_extra_steps = 15
 
-
 	# print("number of points in slice: " +str(num_points))
 
 	# t2 follows the basic curve, t will chase t2
 	t2 = e.ExtruderTurtle()
-	
 
 	r = 0
 
@@ -1622,7 +1620,7 @@ def oscillating_circle(t, diameter, nOscillationsxy, axy, nOscillationsz=0, az=0
 			r= b+axy*math.cos(nOscillationsxy*math.radians(theta))
 		else:
 			r= b+axy*math.cos(nOscillationsxy*math.radians(theta+theta_offset))
-		if (nOscillations==0):
+		if (nOscillationsxy==0):
 			r=diameter/2.0
 		x = r*math.cos(math.radians(theta))
 		y = r*math.sin(math.radians(theta))

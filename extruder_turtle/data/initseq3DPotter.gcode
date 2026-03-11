@@ -11,3 +11,10 @@ G1 X202.5 Y202.5 Z1 F1000 		; Go to the starting position more slowly
 M83                             ; Relative extrusion
 G91                     		; Relative coordinates for X,Y,Z axes
 G1 E5                 			; Extrude 5mm of clay
+
+; POTTER BOT CURA
+; G28 ;Home
+; G1 X140 Y132.5 Z20 F10000 ;Move X and Y to center, Z to 20mm high
+; G92 E0
+; G1 E1000 F15000 ; Prime Extruder
+; G92 E0

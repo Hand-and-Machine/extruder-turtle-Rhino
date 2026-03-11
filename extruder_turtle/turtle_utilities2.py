@@ -6,6 +6,7 @@ import operator as op
 import math
 import random
 import extruder_turtle
+import weave_slicer as ws
 from extruder_turtle import *
 
 def circle(t, diameter, steps=100, start=0, overlap=1):
@@ -15,7 +16,7 @@ def circle(t, diameter, steps=100, start=0, overlap=1):
 	if (dcirc<1.0):
 		steps = int(circumference) # sets step size to 1mm
 	dtheta = 360.0/steps
-	for i in range (start, steps+start+2+overlap):
+	for i in range (start, steps+start+1+overlap):
 		x = r*math.cos(math.radians(i*dtheta))
 		y = r*math.sin(math.radians(i*dtheta))
 		if (i==start):	
@@ -114,13 +115,11 @@ def zig_zag_circle(t,diameter,amplitude,period,offset=0):
 			t.pendown()
 		t.set_position(x,y)
 
-def pattern_cylinder(t, b_diameter, height, t_diameter=False, array=False, pattern_amplitude = False, bottom_layers=3, top_layers=3):
+def pattern_cylinder(t, b_diameter, height, t_diameter=False, array=False, pattern_amplitude = False, bottom_layers=2, top_layers=3, walls=1):
 	base_amplitude = 0.0
-	t.set_extrude_rate(2.5)
-	base_extrude = t.get_extrude_rate()
 	
 	if (pattern_amplitude == False):
-		pattern_amplitude = base_amplitude+4.0
+		pattern_amplitude = base_amplitude+t.get_extrude_width()/2+1
 	if (t_diameter == False):
 		t_diameter = b_diameter
 	layers = int(height/t.get_layer_height())
@@ -160,7 +159,7 @@ def pattern_cylinder(t, b_diameter, height, t_diameter=False, array=False, patte
 				circular_surface_in_out(t,diameter)
 			else:
 				circular_surface_out_in(t,diameter)
-			t.set_extrude_rate(base_extrude)
+			# t.set_extrude_rate(base_extrude)
 
 		# reset x pattern variable for each layer
 		xp = 0
@@ -173,7 +172,8 @@ def pattern_cylinder(t, b_diameter, height, t_diameter=False, array=False, patte
 		################################################
 		if (l>=bottom_layers):
 			circle(t,diameter)
-			# circle(t,diameter-2*t.get_extrude_width())
+			if (walls==2):
+				circle(t,diameter-2*t.get_extrude_width())
 		t.lift(t.get_layer_height())
 
 		# ###############################################
@@ -181,9 +181,9 @@ def pattern_cylinder(t, b_diameter, height, t_diameter=False, array=False, patte
 		# change to nozzle 1 and apply pattern
 		# ###############################################
 		r_pattern = r-1.0
-		if (l>bottom_layers and l%2==0 and l<= layers-top_layers): # only do the pattern for pattern rows
+		if (l>=bottom_layers and l%2==0 and l<= layers-top_layers): # only do the pattern for pattern rows
 			t.set_extruder(1)
-			t.set_extrude_rate(1.5)
+			# t.set_extrude_rate(1.5)
 			first_flag = True
 			for s in range(0,steps+1):
 				if (array[s][yp]==1):
@@ -214,7 +214,7 @@ def pattern_cylinder(t, b_diameter, height, t_diameter=False, array=False, patte
 			yp+=1
 
 		t.set_extruder(0)
-		t.set_extrude_rate(base_extrude)
+		# t.set_extrude_rate(base_extrude)
 		diameter = diameter + diameter_inc
 
 def follow_curve(t, curve, double_wall = False, inner_wall=False, steps=100):
@@ -251,14 +251,12 @@ def follow_curve(t, curve, double_wall = False, inner_wall=False, steps=100):
 
 
 
-def pattern_along_curve(t, curve, array=False, pattern_amplitude = False, pattern_layer=True, windows=False, support=False):
+def pattern_along_curve(t, curve, array=False, pattern_amplitude = False, pattern_layer=True, windows=False, support=False,double_wall=False):
 	base_amplitude = 0.0
-	t.set_extrude_rate(2.5)
-	base_extrude = t.get_extrude_rate()
 	steps=100 # gets reset later
 	
 	if (pattern_amplitude == False):
-		pattern_amplitude = base_amplitude+6.0
+		pattern_amplitude = base_amplitude+5.0
 
 	if (array):
 		pattern_width = len(array)
@@ -297,19 +295,22 @@ def pattern_along_curve(t, curve, array=False, pattern_amplitude = False, patter
 		i+=1
 
 	t.set_position(points[0].X,points[0].Y) # close curve
+	position0=t.get_position()
 
-	inner_curve = rs.OffsetCurve(curve, [0,0,0], t.get_extrude_width())
+	inner_curve = rs.OffsetCurve(curve, [0,0,0], 1.0)
 	inner_points = rs.DivideCurve (inner_curve, steps)
-	i=0
-	for point in inner_points:
-		if (array[i]==1 and windows==True and support==False):
-			t.penup()
-		else:
-			t.pendown()
-		t.set_position(point.X,point.Y)
-		i+=1
 
-	t.set_position(inner_points[0].X,inner_points[0].Y) # close curve
+	if (double_wall):
+		i=0
+		for point in inner_points:
+			if (array[i]==1 and windows==True and support==False):
+				t.penup()
+			else:
+				t.pendown()
+			t.set_position(point.X,point.Y)
+			i+=1
+
+		t.set_position(inner_points[0].X,inner_points[0].Y) # close curve
 
 	# ###############################################
 	# MAIN LOOP: PATTERN
@@ -317,18 +318,24 @@ def pattern_along_curve(t, curve, array=False, pattern_amplitude = False, patter
 	# ###############################################
 	t.lift(t.get_layer_height()/2)
 	t.penup()
+
 	if (pattern_layer):
-		t.set_extruder(1)
-		t.set_extrude_rate(1.5)
+		t.write_gcode_comment("CHANGING EXTRUDER POSITION 0,0")
+		t.swap_extruder(x=0.1,y=0.1) # set extruder to position 0,0
 		first_flag = True
 		i=0
 		for point in inner_points:
-			if (array[i]==1 or (i<len(inner_points)-1 and array[i+1]==1) or (i>0 and array[i-1]==1)):
+			# make sure turtle heading is correct if the next array entry is part of pattern
+			if (i<len(inner_points)-2 and (array[i+1]==1 or array[i+2]==1)):
 				t.set_position(point.X,point.Y)
-				t.pendown()
+
+			if (array[i]==1 or (i<len(inner_points)-1 and array[i+1]==1) or (i>0 and array[i-1]==1)):
 				if (first_flag):
-					t.extrude(15)
+					t.set_position(point.X,point.Y)
+					t.extrude(3)
 					first_flag=False
+				t.pendown()
+				t.set_position(point.X,point.Y)
 				t.left(90)
 				t.forward(pattern_amplitude)
 				t.back(pattern_amplitude)
@@ -336,11 +343,13 @@ def pattern_along_curve(t, curve, array=False, pattern_amplitude = False, patter
 			else:
 				# don't extrude material where there is no pattern
 				t.penup()
-				# t.set_position(point.X,point.Y)
 			i+=1
+		t.penup()
+		t.set_position(0,0)
+		t.write_gcode_comment("CHANGING EXTRUDER POSITION0")
+		t.swap_extruder(x=position0.X,y=position0.Y) # set extruder to position0
 	t.penup()
 	t.lift(t.get_layer_height()/2)
+	
 
-	t.set_extruder(0)
-	t.set_extrude_rate(base_extrude)
 
