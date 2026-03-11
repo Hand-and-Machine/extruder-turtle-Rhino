@@ -1256,9 +1256,8 @@ class ExtruderTurtle:
 		return extruder_distance, volume, mass
 
 	def get_print_time(self, print_out=True):
-		total_distance = self.length_of_path()
-		time = round(total_distance/self.get_speed(),0)
-		return time
+		total_distance, total_time = self.length_of_path()
+		return total_time
 
 	def get_path(self):
 		return get_lines(self)
