@@ -230,7 +230,22 @@ class ExtruderTurtle:
 			self.x_size = 150
 			self.y_size = 150
 			self.print_head_size = 64 # 2.5 inches
-		if (printer=="civil"):
+		elif (printer=="Eazao potter" or printer=="eazao_potter"):
+			if(self.out_file):
+				self.initseq_filename = os.path.join(__location__, "data/initseqEazaoPotter.gcode")
+				self.finalseq_filename = os.path.join(__location__, "data/finalseq.gcode")
+			self.nozzle = 1.5
+			self.extrude_width = 2.25
+			self.layer_height = 1.0
+			self.extrude_rate = 1.0 #mm extruded/mm
+			self.speed = 1000 #mm/minute = 16.6 mm/second
+			self.printer = "eazao_potter"
+			self.resolution = .5
+			self.x_size = 150
+			self.y_size = 150
+			self.print_head_size = 64 # 2.5 inches
+			self.mix_factor = .85
+		elif (printer=="civil"):
 			if(self.out_file):
 				self.initseq_filename = os.path.join(__location__, "data/initseqCivil.gcode") 
 				self.finalseq_filename = os.path.join(__location__, "data/finalseq.gcode")
@@ -243,7 +258,7 @@ class ExtruderTurtle:
 			self.resolution = 10.0
 			self.x_size = 2200
 			self.y_size = 1800
-		if (printer=="lutum"):
+		elif (printer=="lutum"):
 			if(self.out_file):
 				self.initseq_filename = os.path.join(__location__, "data/initseqLutum.gcode") 
 				self.finalseq_filename = os.path.join(__location__, "data/finalseq.gcode")
@@ -256,10 +271,10 @@ class ExtruderTurtle:
 			self.resolution = 1.0
 			self.x_size = 400
 			self.y_size = 460
-		if (printer=="dual_nozzle_clay"):
+		elif (printer=="dual_nozzle_clay"):
 			if(self.out_file):
 				if (self.current_extruder==1):
-					print("Extruder 0")
+					print("Extruder 1")
 					self.initseq_filename = os.path.join(__location__, "data/initseqDuale1.gcode") 
 				else:
 					print("Extruder 0")
@@ -277,10 +292,8 @@ class ExtruderTurtle:
 			self.starting_x = 150
 			self.starting_y = 150
 			self.starting_z = 0.5 # should be the same number in header
-
-
-		#else:
-			#print ("No printer set!! \nCheck the name of your printer and try again. \nWe support: super, micro, eazao, and ender")
+		else:
+			print ("No printer set!! \nCheck the name of your printer and try again. \nWe support: super, micro, eazao, lutum, and ender")
 
 		# if(self.out_file):
 		# 	self.finalseq_filename = os.path.join(__location__, "data/finalseq.gcode")

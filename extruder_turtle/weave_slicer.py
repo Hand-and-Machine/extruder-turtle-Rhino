@@ -156,7 +156,7 @@ def weave_one_slice_turtle (t,layer,shape,wall_width=3.0,wavelength=3.0, mode=1,
 				except:
 					print("offset failed")
 					bottom_curve = slice0
-			t.set_speed(original_speed/2.0)
+			t.set_speed(original_speed*.8)
 			su.bottom_layer(t,bottom_curve) 
 			t.set_speed(original_speed)
 			t.penup()
@@ -233,6 +233,9 @@ def find_points_and_angles(slice0, slice1, wavelength, mode=1, wall_width=3.0, l
 	# 	print("Will change wavelengths after a " +str(oscillation_change) + " oscillation shift in size. In mm: " +str(oscillation_change*wavelength))
 	while (point_number%(oscillation_change*4)!=0): #want %4 number of points to complete circle
 		point_number-=1
+	if (point_number<=12):
+		print("small layer, adjusting point number to at least 4 oscillations")
+		point_number = 16
 	
 	# if (point_number0==point_number):
 	# 	print("Changing number of oscillations after a " +str(oscillation_change) + " oscillation shift. In mm: " +str(oscillation_change*wavelength))
