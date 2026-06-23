@@ -9,23 +9,33 @@ import extruder_turtle
 import weave_slicer as ws
 from extruder_turtle import *
 
-def circle(t, diameter, steps=100, start=0, overlap=1):
+def circle(t, diameter, steps=100, start=0, overlap=0, spiral_up=False, layer=False):
 	r = diameter/2.0
 	circumference = math.pi*diameter
 	dcirc = circumference/steps
 	if (dcirc<1.0):
 		steps = int(circumference) # sets step size to 1mm
 	dtheta = 360.0/steps
-	for i in range (start, steps+start+1+overlap):
+	layer_height = t.get_layer_height()
+	dz = layer_height/steps
+	for i in range (start, steps+start+overlap):
 		x = r*math.cos(math.radians(i*dtheta))
 		y = r*math.sin(math.radians(i*dtheta))
 		if (i==start):	
-			t.penup()
-			t.set_position(x,y)
-			t.pendown()
+			if (spiral_up==False):
+				t.penup()
+				t.set_position(x,y)
+				t.pendown()
 			# print("in circle x: " +str(x))
 			# print("in circle y: " +str(y))
-		t.set_position(x,y)
+
+		if (spiral_up==True):
+			z = t.getZ()+dz
+			t.set_position(x,y,z)
+		else:
+			t.set_position(x,y)
+	if (layer is not False):
+		t.write_gcode_comment("LAYER:" +str(layer))
 
 
 def circular_surface_in_out (t,diameter):

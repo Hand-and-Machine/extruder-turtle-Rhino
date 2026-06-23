@@ -25,6 +25,7 @@ class ExtruderTurtle:
 		self.prev_points = [(self.x,self.y,self.z)]
 		self.line_segs = []
 		self.travel_line_segs = []
+		self.travel_line_color_history = []
 		self.extrusion_history = []
 		self.speed_history = []
 		self.travel_speed_history = []
@@ -289,9 +290,10 @@ class ExtruderTurtle:
 			self.resolution = .5
 			self.x_size = 300
 			self.y_size = 300
+			# IMORTANT: must be the same values in header!!
 			self.starting_x = 150
 			self.starting_y = 150
-			self.starting_z = 0.5 # should be the same number in header
+			self.starting_z = 1.5 
 		else:
 			print ("No printer set!! \nCheck the name of your printer and try again. \nWe support: super, micro, eazao, lutum, and ender")
 
@@ -425,8 +427,9 @@ class ExtruderTurtle:
 	###################################################################
 
 	def set_extrude_rate(self, extrude_rate, comment=True):
-		self.extrude_rate = extrude_rate
-		print("extrude rate set to: " +str(extrude_rate))
+		if(self.extrude_rate!=extrude_rate):
+			self.extrude_rate = extrude_rate
+			# print("extrude rate set to: " +str(extrude_rate))
 		if (comment and self.out_file!=False):
 			self.write_gcode_comment("Changed extrude rate to: " +str(extrude_rate))
 			self.out_file.write("; *************************************************\n\n")
@@ -553,7 +556,8 @@ class ExtruderTurtle:
 		self.do(self.G1f.format(f=feedrate))
 
 	def set_speed(self, feedrate):
-		self.do(self.G1f.format(f=feedrate))
+		if(feedrate!=self.speed):
+			self.do(self.G1f.format(f=feedrate))
 		self.speed = feedrate
 		#print("speed set to: " +str(round(feedrate,0)))
 
@@ -586,7 +590,10 @@ class ExtruderTurtle:
 		self.do(self.M0)
 
 	def extrude(self, quantity):
+		speed = self.get_speed()
+		self.set_speed(3000)
 		self.do(self.G1e.format(e=quantity))
+		self.set_speed(1000)
 
 	def set_bed_temp(self, temp):
 		self.do(self.M140s.format(s=temp))
@@ -688,13 +695,27 @@ class ExtruderTurtle:
 
 	def set_heading_point(self,point):
 		#will point the turtle towards the given point
-		distance = 1.0
-		dx = float(distance * self.forward_vec[0])
-		dy = float(distance * self.forward_vec[1])
-		dz = float(distance * self.forward_vec[2])
-		self_vector = [dx,dy,dz]
-		angle = rs.VectorAngle (self_vector,point)
-		self.set_heading(angle)
+		if (point):
+			point = rs.coerce3dpoint(point)
+			x = point.X
+			y = point.Y
+			z = point.Z
+		dx = x-self.x
+		dy = y-self.y
+		dz = z-self.z
+		distance = math.sqrt(dx*dx+dy*dy+dz*dz)
+
+		#!!!! NOTE should keep track of all angles, right now only yaw
+		if (distance!=0):
+			yaw = math.degrees(math.acos(dx/distance))
+			self.left(-self.get_yaw()) # return to 0 heading
+		else:
+			yaw = 0.0
+
+		if (dy>0):
+			self.left(float(yaw))
+		else:
+			self.left(-float(yaw))
 
 	def set_color(self, r=0,g=0,b=0):
 		self.current_color = int(r),int(g),int(b)
@@ -732,6 +753,7 @@ class ExtruderTurtle:
 			else:
 				self.travel_line_segs.append([self.prev_points[-2], self.prev_points[-1]])
 				self.travel_speed_history.append(self.get_speed())
+				self.travel_line_color_history.append(self.current_color)
 
 
 	def forward(self, distance):
@@ -991,6 +1013,27 @@ class ExtruderTurtle:
 		lines0 = []
 		lines1 = []
 		for l,c in zip(self.line_segs, self.color_history):
+			# color for tool 0
+			if (c==(100,100,100)):
+				if (l[0] != l[1]):
+					lines0.append(rs.AddLine(l[0], l[1]))
+			# all other tools
+			else:
+				if (l[0] != l[1]):
+					lines1.append(rs.AddLine(l[0], l[1]))
+		return lines0, lines1
+
+	def get_travel_lines(self):
+		lines = []
+		for l in self.travel_line_segs:
+			if (l[0] != l[1]):
+				lines.append(rs.AddLine(l[0], l[1]))
+		return lines
+
+	def get_dual_travel_lines(self):
+		lines0 = []
+		lines1 = []
+		for l,c in zip(self.travel_line_segs, self.travel_line_color_history):
 			if (c==(100,100,100)):
 				if (l[0] != l[1]):
 					lines0.append(rs.AddLine(l[0], l[1]))

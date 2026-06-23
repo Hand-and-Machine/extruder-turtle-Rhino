@@ -1007,6 +1007,7 @@ def follow_closed_line_chase (t,points=False,curve=False,z_inc=0,angle=50,moveme
 	previous_distance_sq = 10000000
 
 	t.right(random.randint(0,360))
+	position0 = points[0]
 	for j in range (r, len(points)+r):
 		if (j>=len(points)):
 			i = j%r
@@ -1057,6 +1058,8 @@ def follow_closed_line_chase (t,points=False,curve=False,z_inc=0,angle=50,moveme
 				else:
 					t.lift(random.uniform(new_z_inc,new_z_inc*.05))
 				previous_distance_sq = distance_sq
+				
+	t.set_position_point(position0) # return to start
 
 
 

@@ -14,8 +14,12 @@ G92 E0         ; Zero extruder
 G1 F2000 E10  ; Prime Extruder: Extrude some clay
 G92 E0         ; Zero extruder
 
-G0 F2000 X150.0 Y150.0 Z3.0 ; Move to starting position above bed
-G0 F2000 X150.0 Y150.0 Z0.5 ; Move to starting position onto bed
+G0 F2000 X150.0 Y150.0 Z10.0 ; Move to starting position above bed
+
+; IF YOU CHANGE THESE COORDINATES
+; YOU MUST CHANGE THE CORRESPONDING VALUES IN THE LIBRARY 
+G0 F2000 X150.0 Y150.0 Z1.5 ; Move to starting position onto bed
+
 M83 					  ; Relative extrustion
 G91                       ; Relative coordinates for X,Y,Z axes
 
