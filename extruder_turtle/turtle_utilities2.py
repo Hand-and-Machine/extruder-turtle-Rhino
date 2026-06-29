@@ -34,6 +34,11 @@ def circle(t, diameter, steps=100, start=0, overlap=0, spiral_up=False, layer=Fa
 			t.set_position(x,y,z)
 		else:
 			t.set_position(x,y)
+
+	# close circle
+	x = r*math.cos(math.radians(0))
+	y = r*math.sin(math.radians(0))	
+	t.set_position(x,y)
 	if (layer is not False):
 		t.write_gcode_comment("LAYER:" +str(layer))
 
@@ -155,7 +160,7 @@ def pattern_cylinder(t, b_diameter, height, t_diameter=False, array=False, patte
 
 	#pattern access variables
 	xp = 0
-	yp = 0
+	yp = 2
 
 	################################################
 	# LAYER LOOP
@@ -181,29 +186,44 @@ def pattern_cylinder(t, b_diameter, height, t_diameter=False, array=False, patte
 		# change to nozzle 0 and build structure
 		################################################
 		if (l>=bottom_layers):
-			circle(t,diameter)
 			if (walls==2):
 				circle(t,diameter-2*t.get_extrude_width())
+				r_pattern = r-t.get_extrude_width()*1.8
+			else:
+				r_pattern = r-t.get_extrude_width()*.8
+			circle(t,diameter)
 		t.lift(t.get_layer_height())
 
 		# ###############################################
 		# MAIN LOOP: PATTERN
 		# change to nozzle 1 and apply pattern
 		# ###############################################
-		r_pattern = r-1.0
+
 		if (l>=bottom_layers and l%2==0 and l<= layers-top_layers): # only do the pattern for pattern rows
 			t.set_extruder(1)
 			# t.set_extrude_rate(1.5)
 			first_flag = True
-			for s in range(0,steps+1):
+			# reverse direction every other pattern layer
+			if (l%4==0):
+				begin = 0
+				end = steps+1
+				s_step = 1
+			else:
+				begin = steps
+				end = -1
+				s_step = -1
+			for s in range(begin,end,s_step):
 				if (array[s][yp]==1):
 					#inner radius: move nozzle to correct inner position
 					x = r_pattern*math.cos(math.radians(s*dtheta))
 					y = r_pattern*math.sin(math.radians(s*dtheta))
 					t.set_position(x,y)
+					if (s==0):
+						t.extrude(10)
 					if (first_flag):
-						t.extrude(20)
+						t.extrude(5)
 						first_flag = False
+					t.pendown()
 					#pattern radius: bump out
 					x = (r+pattern_amplitude)*math.cos(math.radians(s*dtheta))
 					y = (r+pattern_amplitude)*math.sin(math.radians(s*dtheta))
@@ -214,12 +234,12 @@ def pattern_cylinder(t, b_diameter, height, t_diameter=False, array=False, patte
 					t.set_position(x,y)
 				else:
 					# don't extrude material where there is no pattern
-					t.penup()
+					# t.penup()
 					x = r_pattern*math.cos(math.radians(s*dtheta))
 					y = r_pattern*math.sin(math.radians(s*dtheta))
 					t.set_position(x,y)
-					t.pendown()
-			t.lift(t.get_layer_height()/10.0) # lift up a little to accommodate dense pattern
+					# t.pendown()
+			t.lift(t.get_layer_height()/5.0) # lift up a little to accommodate dense pattern
 		if (l%2==0 and l>=bottom_layers):
 			yp+=1
 

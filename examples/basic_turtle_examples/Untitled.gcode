@@ -6,43 +6,99 @@
 ; **** Hand and Machine Lab, UNM, 2021-present ****
 ; *************************************************
 ; *************************************************
-; *************** Ender initialization **************
-G92 E0 ; Reset Extruder 
-G28 ; Home all axes
-G90 ; Absolute coordinates for X,Y,Z   
-M190 S60 ; Set bed temperature and wait 
-M109 S205 ; Set extruder temperature and wait 
-G1 Z2.0 F3000 ; Move Z to 2mm above bed 
-G1 X0.1 Y20 Z0.3 F5000.0 ; Move to start position
-G1 X0.1 Y200.0 Z0.3 F1500.0 E15 ; Draw the first line
-G1 X0.4 Y200.0 Z0.3 F5000.0 ; Move to side a little
-G1 X0.4 Y20 Z0.3 F1500.0 E30 ; Draw the second line
-G92 E0 ; Reset Extruder
-G1 Z2.0 F3000 ; Move Z Axis up little to prevent scratching of Heat Bed 
-G1 X5 Y20 Z0.3 F5000.0 ; Move over to prevent blob squish 
-G92 E0 ; Reset extruder position to zero 
-G1 F300 E-3 
-G1 F2000
-G1 0 0 .3               ; Lift nozzle above bed a little
-G1 X100 Y100 Z.1        ; Go to the starting position 
-F300 E3                 ; Extrude to get ready
-M83 					; Relative extrustion
-G91                     ; Relative coordinates for X,Y,Z axes
+; *************** Eazao Potter initialization **************
+G21            ; Metric units
+G90            ; Absolute positioning
+M82            ; Absolute extrusion
+M302           ; Allow cold extrusion
+G28            ; Home
+G4 S5          ; wait 5 seconds!
+ 
+G92 E0         ; Zero extruder
+G1 F2000 E20   ; Prime Extruder: Extrude 20mm of clay
+G92 E0         ; Zero extruder
+ 
+; Eazao Potter base mix factor
+M163 S0 P0.85   ; Set Mix Factor small auger extruder
+M163 S1 P0.15   ; Set Mix Factor large plunger extruder
+M164 S0         ; Finalize mix
+ 
+
+G0 F2000 X75.0 Y88.0 Z1.0 ; Move to starting position
+M83 					  ; Relative extrustion
+G91                       ; Relative coordinates for X,Y,Z axes
 ; ********** End printer initialization ***********
 ; *************************************************
 
 ; ***************** Print parameters **************
-; Nozzle size: 0.4
-; Extrude width: 0.45
-; Layer height: 0.2
-; Extrude rate: 0.05
+; Nozzle size: 1.5
+; Extrude width: 2.25
+; Layer height: 1.0
+; Extrude rate: 1.0
 ; Speed: 1000
-; Mix Factor: 0.9
+; Mix Factor: 0.85
 ; *************************************************
 
-G1 X50.0 Y0.0 E2.5
-G1 X-25.0 Y-43.3013 E2.5
-G1 X-25.0 Y43.3013 E2.5
+G1 X31.0 Y0.0 E31.0
+G1 X0.0 Y-31.0 E31.0
+G1 X-31.0 Y-0.0 E31.0
+G1 X-0.0 Y31.0 E31.0
+; LAYER:1
+G1 Z1.0
+G1 X31.0 Y0.0 E31.0
+G1 X0.0 Y-31.0 E31.0
+G1 X-31.0 Y-0.0 E31.0
+G1 X-0.0 Y31.0 E31.0
+; LAYER:2
+G1 Z1.0
+G1 X31.0 Y0.0 E31.0
+G1 X0.0 Y-31.0 E31.0
+G1 X-31.0 Y-0.0 E31.0
+G1 X-0.0 Y31.0 E31.0
+; LAYER:3
+G1 Z1.0
+G1 X31.0 Y0.0 E31.0
+G1 X0.0 Y-31.0 E31.0
+G1 X-31.0 Y-0.0 E31.0
+G1 X-0.0 Y31.0 E31.0
+; LAYER:4
+G1 Z1.0
+G1 X31.0 Y0.0 E31.0
+G1 X0.0 Y-31.0 E31.0
+G1 X-31.0 Y-0.0 E31.0
+G1 X-0.0 Y31.0 E31.0
+; LAYER:5
+G1 Z1.0
+G1 X31.0 Y0.0 E31.0
+G1 X0.0 Y-31.0 E31.0
+G1 X-31.0 Y-0.0 E31.0
+G1 X-0.0 Y31.0 E31.0
+; LAYER:6
+G1 Z1.0
+G1 X31.0 Y0.0 E31.0
+G1 X0.0 Y-31.0 E31.0
+G1 X-31.0 Y-0.0 E31.0
+G1 X-0.0 Y31.0 E31.0
+; LAYER:7
+G1 Z1.0
+G1 X31.0 Y0.0 E31.0
+G1 X0.0 Y-31.0 E31.0
+G1 X-31.0 Y-0.0 E31.0
+G1 X-0.0 Y31.0 E31.0
+; LAYER:8
+G1 Z1.0
+G1 X31.0 Y0.0 E31.0
+G1 X0.0 Y-31.0 E31.0
+G1 X-31.0 Y-0.0 E31.0
+G1 X-0.0 Y31.0 E31.0
+; LAYER:9
+G1 Z1.0
+G1 X31.0 Y0.0 E31.0
+G1 X0.0 Y-31.0 E31.0
+G1 X-31.0 Y-0.0 E31.0
+G1 X-0.0 Y31.0 E31.0
+; LAYER:10
+G1 Z1.0
 ; *************** End of print ***************
 G91                     ; Relative coordinates for X,Y,Z axes
 G1 Z25 F2000            ; move up 25 in the z direction

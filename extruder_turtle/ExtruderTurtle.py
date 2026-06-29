@@ -203,6 +203,20 @@ class ExtruderTurtle:
 			self.x_size = 280
 			self.y_size = 265
 			self.print_head_size = 77 # 3 inches
+		elif (printer=="haystack"):
+			if(self.out_file):
+				self.initseq_filename = os.path.join(__location__, "data/initseq3DPotterHaystack.gcode")
+				self.finalseq_filename = os.path.join(__location__, "data/finalseq.gcode")
+			self.nozzle = 3.0
+			self.extrude_width = 3.4 #mostly for solid bottoms
+			self.layer_height = 2.2
+			self.extrude_rate = 2.5 #mm extruded/mm
+			self.speed = 1200 #mm/minute 
+			self.printer = "haystack"
+			self.resolution = .1
+			self.x_size = 280
+			self.y_size = 265
+			self.print_head_size = 77 # 3 inches
 		elif (printer=="matrix" or printer=="Matrix"):
 			if(self.out_file):
 				self.initseq_filename = os.path.join(__location__, "data/initseqMatrix.gcode")
@@ -854,7 +868,12 @@ class ExtruderTurtle:
 
 	# set position from a rhinoscript point
 	def set_position_point(self,point):
-		self.set_position(point.X, point.Y, point.Z)
+		try:
+			self.set_position(point.X, point.Y, point.Z)
+		except Exception as e:
+			# print(e)
+			point1 = rs.PointCoordinates(point)
+			self.set_position(point1.X, point1.Y, point1.Z)
 
 	# set position from optional x, y, and z values
 	def set_position(self, x=False, y=False, z=False, point=False):

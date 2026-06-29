@@ -1312,6 +1312,13 @@ def pattern_cylinder(t, b_diameter, height, t_diameter=False, array=False, patte
 			if (s%steps_per_oscillation==0):
 				xp = xp+1
 
+
+		# close the curve
+		t.pendown()
+		x = r*math.cos(math.radians(0))
+		y = r*math.sin(math.radians(0))
+		t.set_position(x,y,z)
+
 		##########################################
 		# LAYER LOOP LEVEL
 		##########################################
